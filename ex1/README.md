@@ -1,2 +1,2 @@
-## Tensorflow Tutorial
+## Tensorflow Tutorial: MNIST
 
