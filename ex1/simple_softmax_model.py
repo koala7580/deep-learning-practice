@@ -20,7 +20,7 @@ mnist = input_data.read_data_sets("MNIST_data/", one_hot=True)
 
 # Train
 init = tf.initialize_all_variables()
-sess = tf.Session()
+sess = tf.Session(config=tf.ConfigProto(log_device_placement=True))
 sess.run(init)
 
 for i in range(1000):
