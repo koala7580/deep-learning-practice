@@ -1,2 +1,4 @@
+*.png
 *.npy
 __pycache__/
+train_data/
