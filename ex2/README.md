@@ -1,2 +1,0 @@
-## Caffe Basic Practice
-
