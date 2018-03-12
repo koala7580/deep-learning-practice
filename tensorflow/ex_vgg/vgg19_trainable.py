@@ -83,7 +83,7 @@ class Vgg19:
         elif self.trainable:
             self.relu7 = tf.nn.dropout(self.relu7, self.dropout)
 
-        self.fc8 = self.fc_layer(self.relu7, 4096, 1000, "fc8")
+        self.fc8 = self.fc_layer(self.relu7, 4096, 2, "fc8")
 
         self.prob = tf.nn.softmax(self.fc8, name="prob")
 
@@ -145,7 +145,7 @@ class Vgg19:
 
         self.var_dict[(name, idx)] = var
 
-        # print var_name, var.get_shape().as_list()
+        # print out var_name, var.get_shape().as_list()
         assert var.get_shape() == initial_value.get_shape()
 
         return var
@@ -162,7 +162,7 @@ class Vgg19:
             data_dict[name][idx] = var_out
 
         np.save(npy_path, data_dict)
-        print(("file saved", npy_path))
+        print("file saved:", npy_path)
         return npy_path
 
     def get_var_count(self):

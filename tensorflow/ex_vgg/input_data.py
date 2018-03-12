@@ -23,7 +23,7 @@ def draw(data, filename):
     num_time = date_to_num(mat[:, 0])
     mat[:, 0] = num_time
 
-    fig, ax = plt.subplots(figsize=(15,5))
+    fig, ax = plt.subplots(figsize=(5,5))
     mpf.candlestick_ochl(ax, mat, width=0.6, colorup='g', colordown='r', alpha=1.0)
 
     # 设置日期刻度旋转的角度
@@ -51,19 +51,22 @@ for code in sh50():
     df['date'] = pd.to_datetime(df['date'])
     for i in range(len(date_list) - 121):
         start_date = date_list[i]
-        end_date = date_list[i + 120]
+        buy_date = date_list[i + 120]
+        sell_date = date_list[i + 121]
 
-        mask = (df['date'] >= start_date) & (df['date'] < end_date)
+        mask = (df['date'] >= start_date) & (df['date'] < buy_date)
 
         sub_df = df.loc[mask]
 
-        end_df = df.loc[df['date'] == end_date]
-        next_day_df = df.loc[df['date'] == date_list[i + 121]]
-        end_day_close = end_df['close'].iloc[0]
-        next_day_high = next_day_df['high'].iloc[0]
-        label = (end_day_close * 1.01 < next_day_high) and 1 or 0
+        buy_day_df = df.loc[df['date'] == buy_date]
+        sell_day_df = df.loc[df['date'] == sell_date]
 
-        kline_filename = 'train_data/%s_%s_%s_%d.png' % (code, start_date, end_date, label)
-        draw(sub_df, kline_filename)
+        if not buy_day_df.empty and not sell_day_df.empty:
+            buy_day_close = buy_day_df['close'].iloc[0]
+            sell_day_high = sell_day_df['high'].iloc[0]
+            label = (buy_day_close * 1.01 < sell_day_high) and 1 or 0
 
-        print (kline_filename, next_day_high, end_day_close)
+            kline_filename = 'train_data/%s_%s_%s_%d.png' % (code, start_date, buy_date, label)
+            draw(sub_df, kline_filename)
+
+            print (kline_filename, sell_date)
