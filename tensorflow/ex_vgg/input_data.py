@@ -24,7 +24,7 @@ def draw(data, filename):
     mat[:, 0] = num_time
 
     fig, ax = plt.subplots(figsize=(5,5))
-    mpf.candlestick_ochl(ax, mat, width=0.6, colorup='g', colordown='r', alpha=1.0)
+    mpf.candlestick_ochl(ax, mat, width=0.6, colorup='goldenrod', colordown='lightgreen', alpha=1.0)
 
     # 设置日期刻度旋转的角度
     plt.xticks(rotation=30)
