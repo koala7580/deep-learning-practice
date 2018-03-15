@@ -18,6 +18,7 @@ data set, compile the program and train the model.
 
 http://tensorflow.org/tutorials/deep_cnn/
 """
+# pylint: disable=bad-indentation
 import os.path
 import time
 from datetime import datetime
@@ -46,34 +47,34 @@ def train(model):
 
     # Build a Graph that computes the logits predictions from the
     # inference model.
-    logits = cifar10.inference(images)
+    logits = model.inference(images)
 
     # Calculate loss.
-    loss = cifar10.loss(logits, labels)
+    loss = model.loss(logits, labels)
 
     # Build a Graph that trains the model with one batch of examples and
     # updates the model parameters.
-    train_op = cifar10.train(loss, global_step)
+    train_op = model.train(loss, global_step)
 
     # Create a saver.
     saver = tf.train.Saver(tf.all_variables())
 
     # Build the summary operation based on the TF collection of Summaries.
-    summary_op = tf.merge_all_summaries()
+    summary_op = tf.summary.merge_all()
 
     # Build an initialization operation to run below.
     init = tf.initialize_all_variables()
 
     # Start running operations on the Graph.
     sess = tf.Session(config=tf.ConfigProto(
-        log_device_placement=cifar10.FLAGS.log_device_placement))
+        log_device_placement=model.FLAGS.log_device_placement))
     sess.run(init)
 
     # Start the queue runners.
     tf.train.start_queue_runners(sess=sess)
 
     summary_writer = tf.summary.FileWriter(model.FLAGS.train_dir,
-                                            graph_def=sess.graph_def)
+                                           graph_def=sess.graph_def)
 
     for step in range(model.FLAGS.max_steps):
       start_time = time.time()
@@ -89,8 +90,8 @@ def train(model):
 
         format_str = ('%s: step %d, loss = %.2f (%.1f examples/sec; %.3f '
                       'sec/batch)')
-        print (format_str % (datetime.now(), step, loss_value,
-                             examples_per_sec, sec_per_batch))
+        print(format_str % (datetime.now(), step, loss_value,
+                            examples_per_sec, sec_per_batch))
 
       if step % 100 == 0:
         summary_str = sess.run(summary_op)
@@ -98,11 +99,12 @@ def train(model):
 
       # Save the model checkpoint periodically.
       if step % 1000 == 0 or (step + 1) == model.FLAGS.max_steps:
-        checkpoint_path = os.path.join(FLAGS.train_dir, 'model.ckpt')
+        checkpoint_path = os.path.join(model.FLAGS.train_dir, 'model.ckpt')
         saver.save(sess, checkpoint_path, global_step=step)
 
 
 def main(argv=None):  # pylint: disable=unused-argument
+  """Main Function"""
   cifar10 = CIFAR10Model()
 
   cifar10.maybe_download_and_extract()

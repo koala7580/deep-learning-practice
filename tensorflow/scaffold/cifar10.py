@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """Example model: CIFAR10
 """
-import re
+# pylint: disable=bad-indentation
 import os
 import sys
 import tarfile
@@ -14,28 +14,14 @@ from six.moves import urllib
 class CIFAR10Model(model.Model):
   """Example model."""
 
-  def __init__(self):
-    """Init model."""
-    super(CIFAR10Model, self).__init__()
+  # Global constants describing the CIFAR-10 data set.
+  IMAGE_SIZE = cifar10_input.IMAGE_SIZE
+  NUM_CLASSES = cifar10_input.NUM_CLASSES
+  NUM_EXAMPLES_PER_EPOCH_FOR_TRAIN = cifar10_input.NUM_EXAMPLES_PER_EPOCH_FOR_TRAIN
+  NUM_EXAMPLES_PER_EPOCH_FOR_EVAL = cifar10_input.NUM_EXAMPLES_PER_EPOCH_FOR_EVAL
 
-    # Global constants describing the CIFAR-10 data set.
-    self.IMAGE_SIZE = cifar10_input.IMAGE_SIZE
-    self.NUM_CLASSES = cifar10_input.NUM_CLASSES
-    self.NUM_EXAMPLES_PER_EPOCH_FOR_TRAIN = cifar10_input.NUM_EXAMPLES_PER_EPOCH_FOR_TRAIN
-    self.NUM_EXAMPLES_PER_EPOCH_FOR_EVAL = cifar10_input.NUM_EXAMPLES_PER_EPOCH_FOR_EVAL
+  DATA_URL = 'http://www.cs.toronto.edu/~kriz/cifar-10-binary.tar.gz'
 
-    # Constants describing the training process.
-    self.MOVING_AVERAGE_DECAY = 0.9999     # The decay to use for the moving average.
-    self.NUM_EPOCHS_PER_DECAY = 350.0      # Epochs after which learning rate decays.
-    self.LEARNING_RATE_DECAY_FACTOR = 0.1  # Learning rate decay factor.
-    self.INITIAL_LEARNING_RATE = 0.1       # Initial learning rate.
-
-    # If a model is trained with multiple GPU's prefix all Op names with tower_name
-    # to differentiate the operations. Note that this prefix is removed from the
-    # names of the summaries when visualizing a model.
-    self.TOWER_NAME = 'tower'
-
-    self.DATA_URL = 'http://www.cs.toronto.edu/~kriz/cifar-10-binary.tar.gz'
 
   def distorted_inputs(self):
     """Construct distorted input for CIFAR training using the Reader ops.
@@ -98,7 +84,7 @@ class CIFAR10Model(model.Model):
 
     # pool1
     pool1 = tf.nn.max_pool(conv1, ksize=[1, 3, 3, 1], strides=[1, 2, 2, 1],
-                          padding='SAME', name='pool1')
+                           padding='SAME', name='pool1')
     # norm1
     norm1 = tf.nn.lrn(pool1, 4, bias=1.0, alpha=0.001 / 9.0, beta=0.75,
                       name='norm1')
@@ -118,18 +104,18 @@ class CIFAR10Model(model.Model):
                       name='norm2')
     # pool2
     pool2 = tf.nn.max_pool(norm2, ksize=[1, 3, 3, 1],
-                          strides=[1, 2, 2, 1], padding='SAME', name='pool2')
+                           strides=[1, 2, 2, 1], padding='SAME', name='pool2')
 
     # local3
     with tf.variable_scope('local3') as scope:
       # Move everything into depth so we can perform a single matrix multiply.
       dim = 1
-      for d in pool2.get_shape()[1:].as_list():
+      for d in pool2.get_shape()[1:].as_list(): # pylint: disable=invalid-name
         dim *= d
       reshape = tf.reshape(pool2, [self.FLAGS.batch_size, dim])
 
       weights = self._variable_with_weight_decay('weights', shape=[dim, 384],
-                                                  stddev=0.04, wd=0.004)
+                                                 stddev=0.04, wd=0.004)
       biases = self._variable_on_cpu('biases', [384], tf.constant_initializer(0.1))
       local3 = tf.nn.relu(tf.matmul(reshape, weights) + biases, name=scope.name)
       self._activation_summary(local3)
@@ -137,17 +123,17 @@ class CIFAR10Model(model.Model):
     # local4
     with tf.variable_scope('local4') as scope:
       weights = self._variable_with_weight_decay('weights', shape=[384, 192],
-                                            stddev=0.04, wd=0.004)
+                                                 stddev=0.04, wd=0.004)
       biases = self._variable_on_cpu('biases', [192], tf.constant_initializer(0.1))
       local4 = tf.nn.relu(tf.matmul(local3, weights) + biases, name=scope.name)
       self._activation_summary(local4)
 
     # softmax, i.e. softmax(WX + b)
     with tf.variable_scope('softmax_linear') as scope:
-      weights = self._variable_with_weight_decay('weights', [192, NUM_CLASSES],
-                                                  stddev=1/192.0, wd=0.0)
-      biases = self._variable_on_cpu('biases', [NUM_CLASSES],
-                                      tf.constant_initializer(0.0))
+      weights = self._variable_with_weight_decay('weights', [192, self.NUM_CLASSES],
+                                                 stddev=1/192.0, wd=0.0)
+      biases = self._variable_on_cpu('biases', [self.NUM_CLASSES],
+                                     tf.constant_initializer(0.0))
       softmax_linear = tf.add(tf.matmul(local4, weights), biases, name=scope.name)
       self._activation_summary(softmax_linear)
 
@@ -163,11 +149,11 @@ class CIFAR10Model(model.Model):
     filepath = os.path.join(dest_directory, filename)
     if not os.path.exists(filepath):
       def _progress(count, block_size, total_size):
-        sys.stdout.write('\r>> Downloading %s %.1f%%' % (filename,
-            float(count * block_size) / float(total_size) * 100.0))
+        sys.stdout.write('\r>> Downloading %s %.1f%%' % \
+          (filename, float(count * block_size) / float(total_size) * 100.0))
         sys.stdout.flush()
       filepath, _ = urllib.request.urlretrieve(self.DATA_URL, filepath,
-                                              reporthook=_progress)
+                                               reporthook=_progress)
       print()
       statinfo = os.stat(filepath)
       print('Successfully downloaded', filename, statinfo.st_size, 'bytes.')

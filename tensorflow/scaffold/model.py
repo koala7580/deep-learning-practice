@@ -3,6 +3,8 @@
 
  Python 3.x needed.
 """
+# pylint: disable=bad-indentation
+import re
 import tensorflow as tf
 
 
@@ -24,6 +26,23 @@ class Model:
   # Create a graph to run one step of training with respect to the loss.
   train_op = train(loss, global_step)
   """
+  FLAGS = tf.app.flags.FLAGS
+
+  # If a model is trained with multiple GPU's prefix all Op names with tower_name
+  # to differentiate the operations. Note that this prefix is removed from the
+  # names of the summaries when visualizing a model.
+  TOWER_NAME = 'tower'
+
+  # Global constants describing the CIFAR-10 data set.
+  NUM_EXAMPLES_PER_EPOCH_FOR_TRAIN = 0
+  NUM_EXAMPLES_PER_EPOCH_FOR_EVAL = 0
+
+  # Constants describing the training process.
+  MOVING_AVERAGE_DECAY = 0.9999     # The decay to use for the moving average.
+  NUM_EPOCHS_PER_DECAY = 350.0      # Epochs after which learning rate decays.
+  LEARNING_RATE_DECAY_FACTOR = 0.1  # Learning rate decay factor.
+  INITIAL_LEARNING_RATE = 0.1       # Initial learning rate.
+
 
   def __init__(self):
     """Init the class."""
@@ -31,12 +50,10 @@ class Model:
     tf.app.flags.DEFINE_integer('batch_size', 128,
                                 """Number of images to process in a batch.""")
     tf.app.flags.DEFINE_string('data_dir', '/tmp/tf_data',
-                                """Path to the model data directory.""")
-
-    self.FLAGS = tf.app.flags.FLAGS
+                               """Path to the model data directory.""")
 
 
-  def _activation_summary(self, x):
+  def _activation_summary(self, x): # pylint: disable=invalid-name
     """Helper to create summaries for activations.
 
     Creates a summary that provides a histogram of activations.
@@ -49,7 +66,7 @@ class Model:
     """
     # Remove 'tower_[0-9]/' from the name in case this is a multi-GPU training
     # session. This helps the clarity of presentation on tensorboard.
-    tensor_name = re.sub('%s_[0-9]*/' % TOWER_NAME, '', x.op.name)
+    tensor_name = re.sub('%s_[0-9]*/' % self.TOWER_NAME, '', x.op.name)
     tf.summary.histogram(tensor_name + '/activations', x)
     tf.summary.scalar(tensor_name + '/sparsity', tf.nn.zero_fraction(x))
 
@@ -70,7 +87,7 @@ class Model:
     return var
 
 
-  def _variable_with_weight_decay(self, name, shape, stddev, wd):
+  def _variable_with_weight_decay(self, name, shape, stddev, wd): # pylint: disable=invalid-name
     """Helper to create an initialized Variable with weight decay.
 
     Note that the Variable is initialized with a truncated normal distribution.
@@ -112,7 +129,7 @@ class Model:
 
     # Attach a scalar summary to all individual losses and the total loss; do the
     # same for the averaged version of the losses.
-    for l in losses + [total_loss]:
+    for l in losses + [total_loss]: # pylint: disable=invalid-name
       # Name each loss as '(raw)' and name the moving average version of the loss
       # as the original loss name.
       tf.summary.scalar(l.op.name +' (raw)', l)
@@ -123,8 +140,7 @@ class Model:
 
   def distorted_inputs(self):
     """Construct distorted input for model training."""
-    if True:
-      raise NotImplementedError('Please supply a `distorted_inputs` implementation')
+    raise NotImplementedError('Please supply a `distorted_inputs` implementation')
 
 
   def inputs(self, eval_data):
@@ -133,8 +149,7 @@ class Model:
     Args:
       eval_data: bool, indicating if one should use the train or eval data set.
     """
-    if True:
-      raise NotImplementedError('Please supply a `inputs` implementation')
+    raise NotImplementedError('Please supply a `inputs` implementation')
 
 
   def inference(self, images):
@@ -146,8 +161,7 @@ class Model:
     Returns:
       Logits.
     """
-    if True:
-      raise NotImplementedError('Please supply a `inference` implementation')
+    raise NotImplementedError('Please supply a `inference` implementation')
 
 
   def loss(self, logits, labels):
@@ -165,7 +179,7 @@ class Model:
     # Calculate the average cross entropy loss across the batch.
     labels = tf.cast(labels, tf.int64)
     cross_entropy = tf.nn.sparse_softmax_cross_entropy_with_logits(
-        logits, labels, name='cross_entropy_per_example')
+        logits=logits, labels=labels, name='cross_entropy_per_example')
     cross_entropy_mean = tf.reduce_mean(cross_entropy, name='cross_entropy')
     tf.add_to_collection('losses', cross_entropy_mean)
 
@@ -192,7 +206,7 @@ class Model:
     decay_steps = int(num_batches_per_epoch * self.NUM_EPOCHS_PER_DECAY)
 
     # Decay the learning rate exponentially based on the number of steps.
-    lr = tf.train.exponential_decay(self.INITIAL_LEARNING_RATE,
+    lr = tf.train.exponential_decay(self.INITIAL_LEARNING_RATE, # pylint: disable=invalid-name
                                     global_step,
                                     decay_steps,
                                     self.LEARNING_RATE_DECAY_FACTOR,
@@ -216,7 +230,7 @@ class Model:
 
     # Add histograms for gradients.
     for grad, var in grads:
-      if grad:
+      if grad is not None:
         tf.summary.histogram(var.op.name + '/gradients', grad)
 
     # Track the moving averages of all trainable variables.
