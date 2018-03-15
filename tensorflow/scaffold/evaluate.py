@@ -1,20 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Evaluation for model.
-
-Accuracy:
-cifar10_train.py achieves 83.0% accuracy after 100K steps (256 epochs
-of data) as judged by cifar10_eval.py.
-
-Speed:
-On a single Tesla K40, cifar10_train.py processes a single batch of 128 images
-in 0.25-0.35 sec (i.e. 350 - 600 images /sec). The model reaches ~86%
-accuracy after 100K steps in 8 hours of training time.
-
-Usage:
-Please see the tutorial and website for how to download the CIFAR-10
-data set, compile the program and train the model.
-
-http://tensorflow.org/tutorials/deep_cnn/
+"""Evaluation for the model.
 """
 import math
 import time
@@ -23,26 +8,16 @@ from datetime import datetime
 import numpy as np
 import tensorflow as tf
 
-from cifar10 import CIFAR10Model
 
-tf.app.flags.DEFINE_string('eval_dir', '/tmp/cifar10_eval',
-                           """Directory where to write event logs.""")
-tf.app.flags.DEFINE_string('eval_data', 'test',
-                           """Either 'test' or 'train_eval'.""")
-tf.app.flags.DEFINE_string('checkpoint_dir', '/tmp/cifar10_train',
-                           """Directory where to read model checkpoints.""")
-tf.app.flags.DEFINE_integer('eval_interval_secs', 60 * 5,
-                            """How often to run the eval.""")
-tf.app.flags.DEFINE_integer('num_examples', 10000,
-                            """Number of examples to run.""")
-tf.app.flags.DEFINE_boolean('run_once', False,
-                            """Whether to run eval only once.""")
+# Import the model
+from cifar10 import CIFAR10Model
 
 
 def eval_once(model, saver, summary_writer, top_k_op, summary_op):
   """Run Eval once.
 
   Args:
+    model: Model instance.
     saver: Saver.
     summary_writer: Summary writer.
     top_k_op: Top K op.
@@ -95,10 +70,10 @@ def eval_once(model, saver, summary_writer, top_k_op, summary_op):
 
 def evaluate(model):
   """Eval model for a number of steps."""
-  with tf.Graph().as_default():
+  with tf.Graph().as_default(): # pylint: disable=not-context-manager
     # Get images and labels for CIFAR-10.
     eval_data = model.FLAGS.eval_data == 'test'
-    images, labels = model.inputs(eval_data=eval_data)
+    images, labels = model.evaluate_inputs(eval_data=eval_data)
 
     # Build a Graph that computes the logits predictions from the
     # inference model.
@@ -116,9 +91,9 @@ def evaluate(model):
     # Build the summary operation based on the TF collection of Summaries.
     summary_op = tf.summary.merge_all()
 
-    graph_def = tf.get_default_graph().as_graph_def()
+    graph = tf.get_default_graph()
     summary_writer = tf.summary.FileWriter(model.FLAGS.eval_dir,
-                                           graph_def=graph_def)
+                                           graph=graph)
 
     while True:
       eval_once(model, saver, summary_writer, top_k_op, summary_op)
@@ -138,4 +113,17 @@ def main(argv=None):  # pylint: disable=unused-argument
 
 
 if __name__ == '__main__':
+  tf.app.flags.DEFINE_string('eval_dir', '/tmp/cifar10_eval',
+                             """Directory where to write event logs.""")
+  tf.app.flags.DEFINE_string('eval_data', 'test',
+                             """Either 'test' or 'train_eval'.""")
+  tf.app.flags.DEFINE_string('checkpoint_dir', '/tmp/cifar10_train',
+                             """Directory where to read model checkpoints.""")
+  tf.app.flags.DEFINE_integer('eval_interval_secs', 60 * 5,
+                              """How often to run the eval.""")
+  tf.app.flags.DEFINE_integer('num_examples', 10000,
+                              """Number of examples to run.""")
+  tf.app.flags.DEFINE_boolean('run_once', False,
+                              """Whether to run eval only once.""")
+
   tf.app.run()

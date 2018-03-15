@@ -138,12 +138,12 @@ class BaseModel:
     return loss_averages_op
 
 
-  def distorted_inputs(self):
+  def train_inputs(self):
     """Construct distorted input for model training."""
     raise NotImplementedError('Please supply a `distorted_inputs` implementation')
 
 
-  def inputs(self, eval_data):
+  def evaluate_inputs(self, eval_data):
     """Construct input for model evaluation.
 
     Args:

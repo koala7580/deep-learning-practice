@@ -1,49 +1,26 @@
 # -*- coding: utf-8 -*-
-"""A binary to train using a single GPU.
-
-Accuracy:
-cifar10_train.py achieves ~86% accuracy after 100K steps (256 epochs of
-data) as judged by cifar10_eval.py.
-
-Speed: With batch_size 128.
-
-System        | Step Time (sec/batch)  |     Accuracy
-------------------------------------------------------------------
-1 Tesla K20m  | 0.35-0.60              | ~86% at 60K steps  (5 hours)
-1 Tesla K40m  | 0.25-0.35              | ~86% at 100K steps (4 hours)
-
-Usage:
-Please see the tutorial and website for how to download the CIFAR-10
-data set, compile the program and train the model.
-
-http://tensorflow.org/tutorials/deep_cnn/
+"""Train using a single GPU.
 """
 # pylint: disable=bad-indentation
-import os.path
 import time
+import os.path
 from datetime import datetime
 
 import numpy as np
 import tensorflow as tf
+
+
+# IMPORT model
 from cifar10 import CIFAR10Model
-
-
-tf.app.flags.DEFINE_string('train_dir', '/tmp/cifar10_train',
-                           """Directory where to write event logs """
-                           """and checkpoint.""")
-tf.app.flags.DEFINE_integer('max_steps', 1000000,
-                            """Number of batches to run.""")
-tf.app.flags.DEFINE_boolean('log_device_placement', False,
-                            """Whether to log device placement.""")
 
 
 def train(model):
   """Train model for a number of steps."""
-  with tf.Graph().as_default():
+  with tf.Graph().as_default(): # pylint: disable=not-context-manager
     global_step = tf.Variable(0, trainable=False)
 
-    # Get images and labels for CIFAR-10.
-    images, labels = model.distorted_inputs()
+    # Get images and labels for the model.
+    images, labels = model.train_inputs()
 
     # Build a Graph that computes the logits predictions from the
     # inference model.
@@ -74,7 +51,7 @@ def train(model):
     tf.train.start_queue_runners(sess=sess)
 
     summary_writer = tf.summary.FileWriter(model.FLAGS.train_dir,
-                                           graph_def=sess.graph_def)
+                                           graph=sess.graph)
 
     for step in range(model.FLAGS.max_steps):
       start_time = time.time()
@@ -116,4 +93,12 @@ def main(argv=None):  # pylint: disable=unused-argument
 
 
 if __name__ == '__main__':
+  tf.app.flags.DEFINE_string('train_dir', '/tmp/tf_train',
+                             """Directory where to write event logs """
+                             """and checkpoint.""")
+  tf.app.flags.DEFINE_integer('max_steps', 1000000,
+                              """Number of batches to run.""")
+  tf.app.flags.DEFINE_boolean('log_device_placement', False,
+                              """Whether to log device placement.""")
+
   tf.app.run()

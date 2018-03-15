@@ -23,8 +23,8 @@ class CIFAR10Model(basemodel.BaseModel):
   DATA_URL = 'http://www.cs.toronto.edu/~kriz/cifar-10-binary.tar.gz'
 
 
-  def distorted_inputs(self):
-    """Construct distorted input for CIFAR training using the Reader ops.
+  def train_inputs(self):
+    """Construct training input for CIFAR training using the Reader ops.
 
     Returns:
       images: Images. 4D tensor of [batch_size, IMAGE_SIZE, IMAGE_SIZE, 3] size.
@@ -39,8 +39,9 @@ class CIFAR10Model(basemodel.BaseModel):
     return cifar10_input.distorted_inputs(data_dir=data_dir,
                                           batch_size=self.FLAGS.batch_size)
 
-  def inputs(self, eval_data):
-    """Construct input for CIFAR evaluation using the Reader ops.
+
+  def evaluate_inputs(self, eval_data):
+    """Construct evaluation input for CIFAR evaluation using the Reader ops.
 
     Args:
       eval_data: bool, indicating if one should use the train or eval data set.
@@ -57,6 +58,7 @@ class CIFAR10Model(basemodel.BaseModel):
     data_dir = os.path.join(self.FLAGS.data_dir, 'cifar-10-batches-bin')
     return cifar10_input.inputs(eval_data=eval_data, data_dir=data_dir,
                                 batch_size=self.FLAGS.batch_size)
+
 
   def inference(self, images):
     """Build the CIFAR-10 model.
