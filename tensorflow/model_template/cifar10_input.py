@@ -1,5 +1,22 @@
-"""Routine for decoding the model binary file format."""
+# Copyright 2015 Google Inc. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+# ==============================================================================
+
+"""Routine for decoding the CIFAR-10 binary file format."""
 import os
+
+from six.moves import xrange  # pylint: disable=redefined-builtin
 import tensorflow as tf
 
 # Process images of this size. Note that this differs from the original CIFAR
@@ -13,8 +30,8 @@ NUM_EXAMPLES_PER_EPOCH_FOR_TRAIN = 50000
 NUM_EXAMPLES_PER_EPOCH_FOR_EVAL = 10000
 
 
-def read_data_set(filename_queue):
-  """Reads and parses images from data files.
+def read_cifar10(filename_queue):
+  """Reads and parses examples from CIFAR10 data files.
 
   Recommendation: if you want N-way read parallelism, call this function
   N times.  This will give you N independent Readers reading different
