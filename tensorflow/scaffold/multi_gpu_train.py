@@ -1,18 +1,4 @@
-# Copyright 2015 Google Inc. All Rights Reserved.
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-# ==============================================================================
-
+# -*- coding: utf-8 -*-
 """A binary to train CIFAR-10 using multiple GPU's with synchronous updates.
 
 Accuracy:
@@ -35,21 +21,16 @@ data set, compile the program and train the model.
 
 http://tensorflow.org/tutorials/deep_cnn/
 """
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
-from datetime import datetime
-import os.path
+# pylint: disable=bad-indentation
 import re
 import time
+import os.path
+from datetime import datetime
 
 import numpy as np
-from six.moves import xrange  # pylint: disable=redefined-builtin
 import tensorflow as tf
-from tensorflow.models.image.cifar10 import cifar10
 
-FLAGS = tf.app.flags.FLAGS
+from cifar10 import CIFAR10Model
 
 tf.app.flags.DEFINE_string('train_dir', '/tmp/cifar10_train',
                            """Directory where to write event logs """
@@ -62,7 +43,7 @@ tf.app.flags.DEFINE_boolean('log_device_placement', False,
                             """Whether to log device placement.""")
 
 
-def tower_loss(scope):
+def tower_loss(model, scope):
   """Calculate the total loss on a single tower running the CIFAR model.
 
   Args:
@@ -72,14 +53,14 @@ def tower_loss(scope):
      Tensor of shape [] containing the total loss for a batch of data
   """
   # Get images and labels for CIFAR-10.
-  images, labels = cifar10.distorted_inputs()
+  images, labels = model.distorted_inputs()
 
   # Build inference Graph.
-  logits = cifar10.inference(images)
+  logits = model.inference(images)
 
   # Build the portion of the Graph calculating the losses. Note that we will
   # assemble the total_loss using a custom function below.
-  _ = cifar10.loss(logits, labels)
+  model.loss(logits, labels)
 
   # Assemble all of the losses for the current tower only.
   losses = tf.get_collection('losses', scope)
@@ -93,14 +74,14 @@ def tower_loss(scope):
 
   # Attach a scalar summary to all individual losses and the total loss; do the
   # same for the averaged version of the losses.
-  for l in losses + [total_loss]:
+  for l in losses + [total_loss]: # pylint: disable=invalid-name
     # Remove 'tower_[0-9]/' from the name in case this is a multi-GPU training
     # session. This helps the clarity of presentation on tensorboard.
-    loss_name = re.sub('%s_[0-9]*/' % cifar10.TOWER_NAME, '', l.op.name)
+    loss_name = re.sub('%s_[0-9]*/' % model.TOWER_NAME, '', l.op.name)
     # Name each loss as '(raw)' and name the moving average version of the loss
     # as the original loss name.
-    tf.scalar_summary(loss_name +' (raw)', l)
-    tf.scalar_summary(loss_name, loss_averages.average(l))
+    tf.summary.scalar(loss_name +' (raw)', l)
+    tf.summary.scalar(loss_name, loss_averages.average(l))
 
   with tf.control_dependencies([loss_averages_op]):
     total_loss = tf.identity(total_loss)
@@ -125,7 +106,7 @@ def average_gradients(tower_grads):
     # Note that each grad_and_vars looks like the following:
     #   ((grad0_gpu0, var0_gpu0), ... , (grad0_gpuN, var0_gpuN))
     grads = []
-    for g, _ in grad_and_vars:
+    for g, _ in grad_and_vars: # pylint: disable=invalid-name
       # Add 0 dimension to the gradients to represent the tower.
       expanded_g = tf.expand_dims(g, 0)
 
@@ -139,31 +120,32 @@ def average_gradients(tower_grads):
     # Keep in mind that the Variables are redundant because they are shared
     # across towers. So .. we will just return the first tower's pointer to
     # the Variable.
-    v = grad_and_vars[0][1]
+    v = grad_and_vars[0][1] # pylint: disable=invalid-name
     grad_and_var = (grad, v)
     average_grads.append(grad_and_var)
   return average_grads
 
 
-def train():
+def train(model):
   """Train CIFAR-10 for a number of steps."""
   with tf.Graph().as_default(), tf.device('/cpu:0'):
     # Create a variable to count the number of train() calls. This equals the
     # number of batches processed * FLAGS.num_gpus.
     global_step = tf.get_variable(
         'global_step', [],
-        initializer=tf.constant_initializer(0), trainable=False)
+        initializer=tf.constant_initializer(0),
+        trainable=False)
 
     # Calculate the learning rate schedule.
-    num_batches_per_epoch = (cifar10.NUM_EXAMPLES_PER_EPOCH_FOR_TRAIN /
-                             FLAGS.batch_size)
-    decay_steps = int(num_batches_per_epoch * cifar10.NUM_EPOCHS_PER_DECAY)
+    num_batches_per_epoch = (model.NUM_EXAMPLES_PER_EPOCH_FOR_TRAIN /
+                             model.FLAGS.batch_size)
+    decay_steps = int(num_batches_per_epoch * model.NUM_EPOCHS_PER_DECAY)
 
     # Decay the learning rate exponentially based on the number of steps.
-    lr = tf.train.exponential_decay(cifar10.INITIAL_LEARNING_RATE,
+    lr = tf.train.exponential_decay(model.INITIAL_LEARNING_RATE, # pylint: disable=invalid-name
                                     global_step,
                                     decay_steps,
-                                    cifar10.LEARNING_RATE_DECAY_FACTOR,
+                                    model.LEARNING_RATE_DECAY_FACTOR,
                                     staircase=True)
 
     # Create an optimizer that performs gradient descent.
@@ -171,13 +153,13 @@ def train():
 
     # Calculate the gradients for each model tower.
     tower_grads = []
-    for i in xrange(FLAGS.num_gpus):
+    for i in range(model.FLAGS.num_gpus):
       with tf.device('/gpu:%d' % i):
-        with tf.name_scope('%s_%d' % (cifar10.TOWER_NAME, i)) as scope:
+        with tf.name_scope('%s_%d' % (model.TOWER_NAME, i)) as scope:
           # Calculate the loss for one tower of the CIFAR model. This function
           # constructs the entire CIFAR model but shares the variables across
           # all towers.
-          loss = tower_loss(scope)
+          loss = tower_loss(model, scope)
 
           # Reuse variables for the next tower.
           tf.get_variable_scope().reuse_variables()
@@ -196,24 +178,24 @@ def train():
     grads = average_gradients(tower_grads)
 
     # Add a summary to track the learning rate.
-    summaries.append(tf.scalar_summary('learning_rate', lr))
+    summaries.append(tf.summary.scalar('learning_rate', lr))
 
     # Add histograms for gradients.
     for grad, var in grads:
-      if grad:
+      if grad is not None:
         summaries.append(
-            tf.histogram_summary(var.op.name + '/gradients', grad))
+            tf.summary.histogram(var.op.name + '/gradients', grad))
 
     # Apply the gradients to adjust the shared variables.
     apply_gradient_op = opt.apply_gradients(grads, global_step=global_step)
 
     # Add histograms for trainable variables.
     for var in tf.trainable_variables():
-      summaries.append(tf.histogram_summary(var.op.name, var))
+      summaries.append(tf.summary.histogram(var.op.name, var))
 
     # Track the moving averages of all trainable variables.
     variable_averages = tf.train.ExponentialMovingAverage(
-        cifar10.MOVING_AVERAGE_DECAY, global_step)
+        model.MOVING_AVERAGE_DECAY, global_step)
     variables_averages_op = variable_averages.apply(tf.trainable_variables())
 
     # Group all updates to into a single train op.
@@ -223,7 +205,7 @@ def train():
     saver = tf.train.Saver(tf.all_variables())
 
     # Build the summary operation from the last tower summaries.
-    summary_op = tf.merge_summary(summaries)
+    summary_op = tf.summary.merge(summaries)
 
     # Build an initialization operation to run below.
     init = tf.initialize_all_variables()
@@ -233,16 +215,16 @@ def train():
     # implementations.
     sess = tf.Session(config=tf.ConfigProto(
         allow_soft_placement=True,
-        log_device_placement=FLAGS.log_device_placement))
+        log_device_placement=model.FLAGS.log_device_placement))
     sess.run(init)
 
     # Start the queue runners.
     tf.train.start_queue_runners(sess=sess)
 
-    summary_writer = tf.train.SummaryWriter(FLAGS.train_dir,
-                                            graph_def=sess.graph_def)
+    summary_writer = tf.summary.FileWriter(model.FLAGS.train_dir,
+                                           graph_def=sess.graph_def)
 
-    for step in xrange(FLAGS.max_steps):
+    for step in range(model.FLAGS.max_steps):
       start_time = time.time()
       _, loss_value = sess.run([train_op, loss])
       duration = time.time() - start_time
@@ -250,31 +232,33 @@ def train():
       assert not np.isnan(loss_value), 'Model diverged with loss = NaN'
 
       if step % 10 == 0:
-        num_examples_per_step = FLAGS.batch_size * FLAGS.num_gpus
+        num_examples_per_step = model.FLAGS.batch_size * model.FLAGS.num_gpus
         examples_per_sec = num_examples_per_step / duration
-        sec_per_batch = duration / FLAGS.num_gpus
+        sec_per_batch = duration / model.FLAGS.num_gpus
 
         format_str = ('%s: step %d, loss = %.2f (%.1f examples/sec; %.3f '
                       'sec/batch)')
-        print (format_str % (datetime.now(), step, loss_value,
-                             examples_per_sec, sec_per_batch))
+        print(format_str % (datetime.now(), step, loss_value,
+                            examples_per_sec, sec_per_batch))
 
       if step % 100 == 0:
         summary_str = sess.run(summary_op)
         summary_writer.add_summary(summary_str, step)
 
       # Save the model checkpoint periodically.
-      if step % 1000 == 0 or (step + 1) == FLAGS.max_steps:
-        checkpoint_path = os.path.join(FLAGS.train_dir, 'model.ckpt')
+      if step % 1000 == 0 or (step + 1) == model.FLAGS.max_steps:
+        checkpoint_path = os.path.join(model.FLAGS.train_dir, 'model.ckpt')
         saver.save(sess, checkpoint_path, global_step=step)
 
 
 def main(argv=None):  # pylint: disable=unused-argument
+  """Main Function"""
+  cifar10 = CIFAR10Model()
   cifar10.maybe_download_and_extract()
-  if tf.gfile.Exists(FLAGS.train_dir):
-    tf.gfile.DeleteRecursively(FLAGS.train_dir)
-  tf.gfile.MakeDirs(FLAGS.train_dir)
-  train()
+  if tf.gfile.Exists(cifar10.FLAGS.train_dir):
+    tf.gfile.DeleteRecursively(cifar10.FLAGS.train_dir)
+  tf.gfile.MakeDirs(cifar10.FLAGS.train_dir)
+  train(cifar10)
 
 
 if __name__ == '__main__':

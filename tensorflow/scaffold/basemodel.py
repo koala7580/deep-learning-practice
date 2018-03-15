@@ -8,7 +8,7 @@ import re
 import tensorflow as tf
 
 
-class Model:
+class BaseModel:
   """Base class for a tensorflow model.
 
   Summary of available functions:

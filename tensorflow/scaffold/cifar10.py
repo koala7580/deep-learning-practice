@@ -5,13 +5,13 @@
 import os
 import sys
 import tarfile
-import model
+import basemodel
 import cifar10_input
 import tensorflow as tf
 from six.moves import urllib
 
 
-class CIFAR10Model(model.Model):
+class CIFAR10Model(basemodel.BaseModel):
   """Example model."""
 
   # Global constants describing the CIFAR-10 data set.
