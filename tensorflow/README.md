@@ -1,14 +1,28 @@
 ## Environment Prepare
 
-Create virtual environment by conda:
+Install `pyenv` and `pyenv-virtualenv`:
 
-    $ conda create -n tensorflow anaconda
+    $ brew install pyenv pyenv-virtualenv
 
-Switch to virtual environment:
+Add init script to .bashrc or .zshrc:
 
-    $ pyenv local anaconda3-x.x.x/envs/tensorflow
+    $ eval "$(pyenv init -)"
+    $ eval "$(pyenv virtualenv-init -)"
+
+Install anaconda3:
+
+    $ pyenv install anaconda3-x.x.x
+
+Create virtual environment:
+
+    $ pyenv virtualenv anaconda3-x.x.x tensorflow
+
+Activate virutalenv
+
+    $ pyenv activate tensorflow
+    $ pyenv local tensorflow
 
 Install tensorflow
 
-    $ conda install -n tensorflow -c conda-forge tensorflow
+    $ conda install -c conda-forge tensorflow
 
