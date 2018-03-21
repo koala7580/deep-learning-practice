@@ -22,6 +22,10 @@ Activate virutalenv
     $ pyenv activate tensorflow
     $ pyenv local tensorflow
 
+Install anaconda meta package:
+
+    $ conda install anaconda
+
 Install tensorflow
 
     $ conda install -c conda-forge tensorflow
