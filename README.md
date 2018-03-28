@@ -5,9 +5,9 @@ Deep Learning Practice.
 Including Deep Learning frameworks:
 
 1. TensorFlow
-2. Caffe
-3. Keras
-4. Torch/PyTorch
+2. Torch/PyTorch
+3. Caffe
+4. Keras
 5. CNTK
 6. MXNet
 
