@@ -47,14 +47,17 @@ def convert_to_tfrecord(input_files, output_file):
     """Converts a file to TFRecords."""
     print('Generating %s' % output_file)
     with tf.python_io.TFRecordWriter(output_file) as record_writer:
+        total_num_entries = 0
         for input_file in input_files:
             data_dict = read_pickle_from_file(input_file)
             data = data_dict[b'data']
             labels = data_dict[b'labels']
             num_entries_in_batch = len(labels)
+            total_num_entries += num_entries_in_batch
             for i in range(num_entries_in_batch):
                 example = _entry2example(data[i], labels[i])
                 record_writer.write(example.SerializeToString())
+        print('%s has %d entries' % (output_file, total_num_entries))
 
 
 def main(data_dir):
