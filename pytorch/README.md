@@ -15,12 +15,12 @@ Install anaconda3:
 
 Create virtual environment:
 
-    $ pyenv virtualenv anaconda3-x.x.x tensorflow
+    $ pyenv virtualenv anaconda3-x.x.x pytorch
 
 Activate virutalenv
 
-    $ pyenv activate tensorflow
-    $ pyenv local tensorflow
+    $ pyenv activate pytorch
+    $ pyenv local pytorch
 
 Install anaconda meta package:
 
@@ -28,5 +28,5 @@ Install anaconda meta package:
 
 Install tensorflow
 
-    $ pip install tensorflow
+    $ conda install pytorch torchvision -c pytorch 
 

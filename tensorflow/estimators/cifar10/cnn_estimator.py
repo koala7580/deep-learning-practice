@@ -74,7 +74,6 @@ class CNNEstimator(tf.estimator.Estimator):
 
     def construct_model(self, input_layer, is_training):
         """Construct the model."""
-
         # Convolutional Layer #1
         conv1 = tf.layers.conv2d(
             inputs=input_layer,
@@ -96,7 +95,7 @@ class CNNEstimator(tf.estimator.Estimator):
         pool2 = tf.layers.max_pooling2d(inputs=conv2, pool_size=[2, 2], strides=2)
 
         # Dense Layer
-        pool2_flat = tf.reshape(pool2, [-1, 7 * 7 * 64])
+        pool2_flat = tf.reshape(pool2, [-1, 8 * 8 * 64])
         dense = tf.layers.dense(inputs=pool2_flat, units=1024, activation=tf.nn.relu)
         dropout = tf.layers.dropout(
             inputs=dense, rate=0.4, training=is_training)
