@@ -1,34 +1,31 @@
 # -*- coding: utf-8 -*-
-"""用教程中识别 MNIST 的 CNN 模型来处理 CIFAR-10.
-
-教程地址：https://www.tensorflow.org/tutorials/layers
-"""
+"""Vgg 模型"""
 import os
 
 import numpy as np
 import tensorflow as tf
 
 
-FLAGS = tf.app.flags.FLAGS 
+FLAGS = tf.app.flags.FLAGS
 
 
-class CNNEstimator(tf.estimator.Estimator):
+class VggEstimator(tf.estimator.Estimator):
     """CIFAR-10 CNN Estimator."""
 
     def __init__(self, params=None, config=None):
         """Init the estimator.
         """
         super().__init__(
-            model_fn=self.the_model_fn,
+            model_fn=self.a_model_fn,
             model_dir=FLAGS.model_dir,
             config=config,
             params=params
         )
 
 
-    def the_model_fn(self, features, labels, mode, params):
+    def a_model_fn(self, features, labels, mode, params):
         """Estimator model function.
-        
+
         Arguments:
             features {Tensor} -- features in input
             labels {Tensor} -- labels of features
@@ -53,6 +50,10 @@ class CNNEstimator(tf.estimator.Estimator):
 
         # Calculate Loss (for both TRAIN and EVAL modes)
         loss = tf.losses.sparse_softmax_cross_entropy(labels=labels, logits=logits)
+        # tf.summary.scalar('loss', loss)
+
+        accuracy = tf.metrics.accuracy(labels=labels, predictions=predictions["classes"])
+        # tf.summary.scalar('accuracy', accuracy)
 
         # Configure the Training Op (for TRAIN mode)
         if mode == tf.estimator.ModeKeys.TRAIN:
@@ -63,7 +64,6 @@ class CNNEstimator(tf.estimator.Estimator):
             return tf.estimator.EstimatorSpec(mode=mode, loss=loss, train_op=train_op)
 
         # Add evaluation metrics (for EVAL mode)
-        accuracy = tf.metrics.accuracy(labels=labels, predictions=predictions["classes"])        
         eval_metric_ops = { "accuracy": accuracy }
         return tf.estimator.EstimatorSpec(
             mode=mode, loss=loss, eval_metric_ops=eval_metric_ops)
