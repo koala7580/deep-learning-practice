@@ -9,7 +9,7 @@ import numpy as np
 import tensorflow as tf
 
 
-FLAGS = tf.app.flags.FLAGS 
+FLAGS = tf.app.flags.FLAGS
 
 
 class CNNEstimator(tf.estimator.Estimator):
@@ -28,7 +28,7 @@ class CNNEstimator(tf.estimator.Estimator):
 
     def the_model_fn(self, features, labels, mode, params):
         """Estimator model function.
-        
+
         Arguments:
             features {Tensor} -- features in input
             labels {Tensor} -- labels of features
@@ -53,6 +53,10 @@ class CNNEstimator(tf.estimator.Estimator):
 
         # Calculate Loss (for both TRAIN and EVAL modes)
         loss = tf.losses.sparse_softmax_cross_entropy(labels=labels, logits=logits)
+        
+        accuracy = tf.metrics.accuracy(labels=labels, predictions=predictions["classes"])
+        accuracy_mean = tf.reduce_mean(accuracy, name='accuracy_mean')
+        tf.summary.scalar('accuracy', accuracy_mean)
 
         # Configure the Training Op (for TRAIN mode)
         if mode == tf.estimator.ModeKeys.TRAIN:
@@ -63,7 +67,6 @@ class CNNEstimator(tf.estimator.Estimator):
             return tf.estimator.EstimatorSpec(mode=mode, loss=loss, train_op=train_op)
 
         # Add evaluation metrics (for EVAL mode)
-        accuracy = tf.metrics.accuracy(labels=labels, predictions=predictions["classes"])        
         eval_metric_ops = { "accuracy": accuracy }
         return tf.estimator.EstimatorSpec(
             mode=mode, loss=loss, eval_metric_ops=eval_metric_ops)

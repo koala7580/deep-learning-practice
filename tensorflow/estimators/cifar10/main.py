@@ -5,6 +5,7 @@ import os
 import tensorflow as tf
 
 from cnn_estimator import CNNEstimator
+from vgg_estimator import VggEstimator
 
 TRAIN_FILE = 'train.tfrecords'
 VALIDATION_FILE = 'validation.tfrecords'
@@ -48,7 +49,7 @@ def main(unused_argv):
     logging_hook = tf.train.LoggingTensorHook(
         tensors=tensors_to_log, every_n_iter=50)
 
-    estimator = CNNEstimator({
+    estimator = VggEstimator({
         'feature_columns': [tf.feature_column.numeric_column('image')],
     })
 
