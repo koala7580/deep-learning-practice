@@ -13,13 +13,14 @@ FLAGS = tf.app.flags.FLAGS
 
 tf.logging.set_verbosity(tf.logging.INFO)
 
+
 def parser(record):
     keys_to_features = {
         'image': tf.FixedLenFeature((), tf.string),
         'label': tf.FixedLenFeature((), tf.int64)
     }
     parsed = tf.parse_single_example(record, keys_to_features)
-    image = tf.decode_raw(parsed['image'], tf.uint8)
+    image = tf.image.decode_png(parsed['image'], 3)
     image = tf.cast(image, tf.float32)
     image = tf.divide(image, 255.0)
     label = tf.cast(parsed['label'], tf.int32)

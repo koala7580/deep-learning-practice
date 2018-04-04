@@ -10,10 +10,8 @@ import pandas as pd
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import matplotlib.finance as mpf
-import skimage.io as skimage_io
 import tensorflow as tf
 from matplotlib.pylab import date2num
-from skimage.color import rgba2rgb
 
 from download_data import SH50
 
@@ -60,9 +58,7 @@ def draw(data):
 		fig.savefig(image_buffer, format='png')
 		plt.close(fig)
 
-		image = skimage_io.imread(image_buffer)
-		image = rgba2rgb(image)
-		return image.tobytes()
+		return image_buffer.getvalue()
 
 
 def _int64_feature(value):
