@@ -10,8 +10,10 @@ import pandas as pd
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import matplotlib.finance as mpf
+import skimage.io as skimage_io
 import tensorflow as tf
 from matplotlib.pylab import date2num
+from skimage.color import rgba2rgb
 
 from download_data import SH50
 
@@ -54,10 +56,13 @@ def draw(data):
 	# x轴的刻度为日期
 	ax.xaxis_date()
 
-	with io.BytesIO() as image_io:
-		fig.savefig(image_io)
+	with io.BytesIO() as image_buffer:
+		fig.savefig(image_buffer, format='png')
 		plt.close(fig)
-		return image_io.getvalue()
+
+		image = skimage_io.imread(image_buffer)
+		image = rgba2rgb(image)
+		return image.tobytes()
 
 
 def _int64_feature(value):
@@ -68,10 +73,10 @@ def _bytes_feature(value):
 	return tf.train.Feature(bytes_list=tf.train.BytesList(value=[value]))
 
 
-def make_example(img_bytes, label, buy_date, sell_date, code):
+def make_example(image, label, buy_date, sell_date, code):
 	return tf.train.Example(features=tf.train.Features(
         feature={
-            'image': _bytes_feature(img_bytes),
+            'image': _bytes_feature(image),
 			'label': _int64_feature(label),
 			'buy_date': _bytes_feature(bytes(buy_date, 'utf-8')),
 			'sell_date': _bytes_feature(bytes(sell_date, 'utf-8')),
@@ -123,7 +128,7 @@ def main(args):
 				start_date = date_list[i]
 				buy_date = date_list[i + 120]
 				sell_date = date_list[i + 121]
-	
+
 				try:
 					img_bytes, label = generate_kline_and_label(start_date, buy_date, sell_date, df)
 				except ValueError:
