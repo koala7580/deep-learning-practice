@@ -8,7 +8,22 @@ import tensorflow as tf
 
 def main(args):
     """Main Function"""
-    pass
+    # def main(job_dir, data_dir, num_gpus, variable_strategy,
+    #          use_distortion_for_training, log_device_placement, num_intra_threads,
+    #          **hparams):
+
+    # Session configuration.
+    session_config = tf.ConfigProto(
+        allow_soft_placement=True,
+        log_device_placement=args.log_device_placement,
+        intra_op_parallelism_threads=args.num_intra_threads,
+        gpu_options=tf.GPUOptions(force_gpu_compatible=True))
+
+    estimator = None
+    train_spec = None
+    eval_spec = None
+    
+    tf.estimator.train_and_evaluate(estimator, train_spec, eval_spec)
 
 
 if __name__ == '__main__':
