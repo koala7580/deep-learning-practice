@@ -13,14 +13,17 @@ Install anaconda3:
 
     $ pyenv install anaconda3-x.x.x
 
+Activate the anaconda environment:
+
+    $ pyenv activate anaconda3-x.x.x
+
 Create virtual environment:
 
-    $ pyenv virtualenv anaconda3-x.x.x tensorflow
+    $ pyenv virtualenv tensorflow
 
-Activate virutalenv
+Activate virutalenv:
 
-    $ pyenv activate tensorflow
-    $ pyenv local tensorflow
+    $ conda activate tensorflow
 
 Install anaconda meta package:
 

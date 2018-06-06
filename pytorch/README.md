@@ -13,14 +13,17 @@ Install anaconda3:
 
     $ pyenv install anaconda3-x.x.x
 
+Activate anaconda environment:
+
+    $ pyenv activate anacodna3-x.x.x
+
 Create virtual environment:
 
-    $ pyenv virtualenv anaconda3-x.x.x pytorch
+    $ pyenv virtualenv pytorch
 
 Activate virutalenv
 
-    $ pyenv activate pytorch
-    $ pyenv local pytorch
+    $ conda activate pytorch
 
 Install anaconda meta package:
 
