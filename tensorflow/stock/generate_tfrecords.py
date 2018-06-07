@@ -20,6 +20,8 @@ import tensorflow as tf
 
 from download_data import SH50
 
+plt.switch_backend('agg')
+
 
 def read_stock_data(file_path, code):
 	return pd.read_hdf(file_path, 'SH' + code)
