@@ -42,17 +42,17 @@ def main(args):
 	if not os.path.exists(args.data_dir):
 		print('Create folder: {}'.format(args.data_dir))
 		os.mkdir(args.data_dir)
-	
+
 	full_path = os.path.join(args.data_dir, args.hdf)
 	if os.path.exists(full_path):
-		print('Remove file: {}'.format(full_path))		
+		print('Remove file: {}'.format(full_path))
 		os.unlink(full_path)
 
 	TODAY = datetime.today().strftime('%Y-%m-%d')
 
 	for code in SH50:
 		df = ts.get_k_data(code, args.start_date, TODAY)
-		df.to_hdf(full_path, 'SH' + code)
+		df.to_hdf(full_path, 'SH' + code, complevel=6)
 		print(code, 'is done')
 
 
@@ -75,6 +75,6 @@ if __name__ == '__main__':
 		type=str,
 		default='kline_raw.hdf',
 		help='Filename to download and store stock data to.')
-	
+
 	args = parser.parse_args()
 	main(args)

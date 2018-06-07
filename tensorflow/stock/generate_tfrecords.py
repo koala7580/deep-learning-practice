@@ -1,5 +1,11 @@
 # -*- coding: utf-8 -*-
 """生成 K 线图，并保存到 TFRecord 中。
+感谢 https://ipreacher.github.io/2017/candlestick/ 对 matplotlib.finance
+进行了详细的解读。
+因为 Matplotlib 2.2 以后，finance 模块被转换到了另一个 module 里，而这个包现在不在
+pip 仓库里，所以需要这样安装：
+
+	pip install https://github.com/matplotlib/mpl_finance/archive/master.zip
 """
 import io
 import os
@@ -9,9 +15,8 @@ import datetime
 import pandas as pd
 import matplotlib as mpl
 import matplotlib.pyplot as plt
-import matplotlib.finance as mpf
+import mpl_finance as mpf
 import tensorflow as tf
-from matplotlib.pylab import date2num
 
 from download_data import SH50
 
@@ -21,38 +26,27 @@ def read_stock_data(file_path, code):
 
 
 def collect_date_list(file_path):
-	dl = []
+	dl_set = set()
 
 	for code in SH50:
 		df = read_stock_data(file_path, code)
-		mat = df.as_matrix()
-		dl.extend(mat[:, 0])
+		dl_set |= set(df['date'])
 
-	dl = list(set(dl))
+	dl = list(dl_set)
 	dl.sort()
 
 	return dl
 
 
-def date_to_num(date):
-	return date2num(date.to_pydatetime())
-
-
 def draw(data):
-	mat = data.as_matrix()
-	mat[:, 0] = [date_to_num(x) for x in mat[:, 0]]
+	fig = plt.figure(figsize=(15, 5))
+	ax = fig.add_subplot(1, 1, 1)
+	#ax.set_xticks(range(0, len(data['date']), 20))
+	#ax.set_xticklabels(data['date'][::20])
 
-	fig, ax = plt.subplots(figsize=(5,5))
-	mpf.candlestick_ochl(ax, mat, width=0.6,
-						 colorup='#FFAABB',
-						 colordown='#CCFFDD',
-						 alpha=1.0)
-
-	# 设置日期刻度旋转的角度
-	plt.xticks(rotation=30)
-
-	# x轴的刻度为日期
-	ax.xaxis_date()
+	mpf.candlestick2_ochl(ax, data['open'], data['close'], data['high'], data['low'],
+                      	  width=0.7, colorup='#804020', colordown='#208040',
+                      	  alpha=1.0)
 
 	with io.BytesIO() as image_buffer:
 		fig.savefig(image_buffer, format='png')
@@ -61,15 +55,10 @@ def draw(data):
 		return image_buffer.getvalue()
 
 
-def _int64_feature(value):
-	return tf.train.Feature(int64_list=tf.train.Int64List(value=[value]))
-
-
-def _bytes_feature(value):
-	return tf.train.Feature(bytes_list=tf.train.BytesList(value=[value]))
-
-
 def make_example(image, label, buy_date, sell_date, code):
+	_int64_feature = lambda x: tf.train.Feature(int64_list=tf.train.Int64List(value=[x]))
+	_bytes_feature = lambda x: tf.train.Feature(bytes_list=tf.train.BytesList(value=[x]))
+
 	return tf.train.Example(features=tf.train.Features(
         feature={
             'image': _bytes_feature(image),
@@ -118,7 +107,6 @@ def main(args):
 	with tf.python_io.TFRecordWriter(tfrecords_file_path) as record_writer:
 		for code in SH50:
 			df = read_stock_data(hdf_file_path, code)
-			df['date'] = pd.to_datetime(df['date'])
 
 			for i in range(len(date_list) - 121):
 				start_date = date_list[i]
