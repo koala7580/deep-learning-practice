@@ -14,27 +14,37 @@
 # ==============================================================================
 """Tensorflow estimators for classifying images from CIFAR-10 dataset.
 Support single-host training with one or multiple devices.
+This notebook explained the usage of train_and_evaluate:
+https://github.com/amygdala/code-snippets/blob/master/ml/census_train_and_eval/using_tf.estimator.train_and_evaluate.ipynb
 """
 import argparse
 import functools
 import itertools
 import os
 
-#import cifar10
-#import cifar10_model
-#import cifar10_utils
 import numpy as np
 import tensorflow as tf
+
+from estimators.cnn import build_estimator
+from cifar10_dataset import input_fn
 
 tf.logging.set_verbosity(tf.logging.INFO)
 
 
+def json_serving_input_fn():
+    """Build the serving inputs."""
+    inputs = {
+        'image': tf.placeholder(shape=[None, 32, 32, 3], dtype=tf.float32)
+    }
+
+    return tf.estimator.export.ServingInputReceiver(inputs, inputs)
+
 
 def main(args):
     """Main Function"""
-    # def main(job_dir, data_dir, num_gpus, variable_strategy,
-    #          use_distortion_for_training, log_device_placement, num_intra_threads,
-    #          **hparams):
+    # The env variable is on deprecation path, default is set to off.
+    os.environ['TF_SYNC_ON_FINISH'] = '0'
+    os.environ['TF_ENABLE_WINOGRAD_NONFUSED'] = '1'
 
     # Session configuration.
     session_config = tf.ConfigProto(
@@ -43,10 +53,24 @@ def main(args):
         intra_op_parallelism_threads=args.num_intra_threads,
         gpu_options=tf.GPUOptions(force_gpu_compatible=True))
 
-    estimator = None
-    train_spec = None
-    eval_spec = None
-    
+    run_config = tf.estimator.RunConfig()
+    run_config = run_config.replace(model_dir=args.job_dir)
+    run_config = run_config.replace(session_config=session_config)
+
+    estimator = build_estimator(run_config, {
+        'learning_rate': 0.001
+    })
+
+    train_input = lambda: input_fn(args.data_dir, 'train', args.train_batch_size)
+    train_spec = tf.estimator.TrainSpec(train_input, max_steps=args.train_steps)
+
+    eval_input = lambda: input_fn(args.data_dir, 'validation', args.eval_batch_size)
+    exporter = tf.estimator.FinalExporter('cifar10', json_serving_input_fn)
+    eval_spec = tf.estimator.EvalSpec(eval_input,
+                                      steps=100,
+                                      exporters=[exporter],
+                                      name='cifar10-eval')
+
     tf.estimator.train_and_evaluate(estimator, train_spec, eval_spec)
 
 
@@ -62,17 +86,6 @@ if __name__ == '__main__':
         type=str,
         required=True,
         help='The directory where the model will be stored.')
-    parser.add_argument(
-        '--variable-strategy',
-        choices=['CPU', 'GPU'],
-        type=str,
-        default='CPU',
-        help='Where to locate variable operations')
-    parser.add_argument(
-        '--num-gpus',
-        type=int,
-        default=0,
-        help='The number of gpus used. Uses only CPU if set to 0.')
     parser.add_argument(
         '--train-steps',
         type=int,
@@ -107,16 +120,6 @@ if __name__ == '__main__':
         during training. For more details check the model_fn implementation in
         this file.""")
     parser.add_argument(
-        '--use-distortion-for-training',
-        type=bool,
-        default=True,
-        help='If doing image distortion for training.')
-    parser.add_argument(
-        '--sync',
-        action='store_true',
-        default=False,
-        help='If present when running in a distributed environment will run on sync mode.')
-    parser.add_argument(
         '--num-intra-threads',
         type=int,
         default=0,
@@ -133,13 +136,6 @@ if __name__ == '__main__':
         Number of threads to use for inter-op parallelism. If set to 0, the
         system will pick an appropriate number.""")
     parser.add_argument(
-        '--data-format',
-        type=str,
-        default=None,
-        help="""\
-        If not set, the data format best for the training device is used. 
-        Allowed values: channels_first (NCHW) channels_last (NHWC).""")
-    parser.add_argument(
         '--log-device-placement',
         action='store_true',
         default=False,
@@ -155,17 +151,5 @@ if __name__ == '__main__':
         default=1e-5,
         help='Epsilon for batch norm.')
     args = parser.parse_args()
-
-    if args.num_gpus > 0:
-        assert tf.test.is_gpu_available(), "Requested GPUs but none found."
-    if args.num_gpus < 0:
-        raise ValueError('Invalid GPU count: \"--num-gpus\" must be 0 or a positive integer.')
-    if args.num_gpus == 0 and args.variable_strategy == 'GPU':
-        raise ValueError('num-gpus=0, CPU must be used as parameter server. Set'
-                         '--variable-strategy=CPU.')
-    if args.num_gpus != 0 and args.train_batch_size % args.num_gpus != 0:
-        raise ValueError('--train-batch-size must be multiple of --num-gpus.')
-    if args.num_gpus != 0 and args.eval_batch_size % args.num_gpus != 0:
-        raise ValueError('--eval-batch-size must be multiple of --num-gpus.')
 
     main(args)
