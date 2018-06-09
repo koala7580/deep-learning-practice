@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
-"""用教程中识别 MNIST 的 CNN 模型来处理 CIFAR-10.
+"""LeNet-5
 
-教程地址：https://www.tensorflow.org/tutorials/layers
+中文教程：https://blog.csdn.net/d5224/article/details/68928083
+论文地址：http://yann.lecun.com/exdb/publis/pdf/lecun-01a.pdf
 """
 import os
 
@@ -57,31 +58,43 @@ def model_fn(features, labels, mode, params):
 
 def construct_model(input_layer, is_training):
     """Construct the model."""
-    # Convolutional Layer #1
-    conv1 = tf.layers.conv2d(
+    # C1
+    conv_c1 = tf.layers.conv2d(
         inputs=input_layer,
-        filters=32,
+        filters=6,
         kernel_size=[5, 5],
-        padding="same",
-        activation=tf.nn.relu)
+        padding="valid",
+        activation=tf.nn.relu,
+        name="C1")
 
-    # Pooling Layer #1
-    pool1 = tf.layers.max_pooling2d(inputs=conv1, pool_size=[2, 2], strides=2)
+    # S2
+    pool_s2 = tf.layers.max_pooling2d(inputs=conv_c1, pool_size=[2, 2], strides=2, name="S2")
 
-    # Convolutional Layer #2 and Pooling Layer #2
-    conv2 = tf.layers.conv2d(
-        inputs=pool1,
-        filters=64,
+    # C3
+    conv_c3 = tf.layers.conv2d(
+        inputs=pool_s2,
+        filters=16,
         kernel_size=[5, 5],
-        padding="same",
-        activation=tf.nn.relu)
-    pool2 = tf.layers.max_pooling2d(inputs=conv2, pool_size=[2, 2], strides=2)
+        padding="valid",
+        activation=tf.nn.relu,
+        name="C3")
+    # S4
+    pool_s4 = tf.layers.max_pooling2d(inputs=conv_c3, pool_size=[2, 2], strides=2, name="S4")
+
+    # C5
+    conv_c5 = tf.layers.conv2d(
+        inputs=pool_s4,
+        filters=120,
+        kernel_size=[5, 5],
+        padding="valid",
+        activation=tf.nn.relu,
+        name="C5")
 
     # Dense Layer
-    pool2_flat = tf.reshape(pool2, [-1, 8 * 8 * 64])
-    dense = tf.layers.dense(inputs=pool2_flat, units=1024, activation=tf.nn.relu)
-    dropout = tf.layers.dropout(
-        inputs=dense, rate=0.4, training=is_training)
+    print(conv_c5)
+    flatten = tf.reshape(conv_c5, [-1, 120])
+    dense = tf.layers.dense(inputs=flatten, units=512, activation=tf.nn.relu)
+    dropout = tf.layers.dropout(inputs=dense, rate=0.4, training=is_training)
 
     # Logits Layer
     logits = tf.layers.dense(inputs=dropout, units=10)

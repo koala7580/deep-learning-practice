@@ -25,7 +25,7 @@ import os
 import numpy as np
 import tensorflow as tf
 
-from estimators.cnn import build_estimator
+from estimators.lenet5 import build_estimator
 from cifar10_dataset import input_fn
 
 tf.logging.set_verbosity(tf.logging.INFO)
