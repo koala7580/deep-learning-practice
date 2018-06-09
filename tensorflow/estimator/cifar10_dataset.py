@@ -133,4 +133,4 @@ def input_fn(data_dir,
         use_distortion = subset == 'train' and use_distortion_for_training
         dataset = Cifar10DataSet(data_dir, subset, use_distortion)
         image_batch, label_batch = dataset.make_batch(batch_size)
-        return image_batch, label_batch
+        return { 'image': image_batch }, label_batch

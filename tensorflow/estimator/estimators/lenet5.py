@@ -3,6 +3,9 @@
 
 中文教程：https://blog.csdn.net/d5224/article/details/68928083
 论文地址：http://yann.lecun.com/exdb/publis/pdf/lecun-01a.pdf
+
+结果记录：
+2018-06-09 step=100000 loss = 1.16 accuracy=0.5826
 """
 import os
 
@@ -20,7 +23,7 @@ def model_fn(features, labels, mode, params):
         params {any} -- model params
     """
     # Use `input_layer` to apply the feature columns.
-    input_layer = tf.reshape(features, [-1, 32, 32, 3])
+    input_layer = tf.reshape(features['image'], [-1, 32, 32, 3])
 
     logits = construct_model(input_layer, mode == tf.estimator.ModeKeys.TRAIN)
 
@@ -32,8 +35,14 @@ def model_fn(features, labels, mode, params):
         "probabilities": tf.nn.softmax(logits, name="softmax_tensor")
     }
 
+    export_outputs = {
+        'predict_output': tf.estimator.export.PredictOutput(predictions)
+    }
     if mode == tf.estimator.ModeKeys.PREDICT:
-        return tf.estimator.EstimatorSpec(mode=mode, predictions=predictions)
+        return tf.estimator.EstimatorSpec(
+            mode=mode,
+            predictions=predictions,
+            export_outputs=export_outputs)
 
     # Calculate Loss (for both TRAIN and EVAL modes)
     loss = tf.losses.sparse_softmax_cross_entropy(labels=labels, logits=logits)
@@ -91,7 +100,6 @@ def construct_model(input_layer, is_training):
         name="C5")
 
     # Dense Layer
-    print(conv_c5)
     flatten = tf.reshape(conv_c5, [-1, 120])
     dense = tf.layers.dense(inputs=flatten, units=512, activation=tf.nn.relu)
     dropout = tf.layers.dropout(inputs=dense, rate=0.4, training=is_training)
