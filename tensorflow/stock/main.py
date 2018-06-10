@@ -25,7 +25,7 @@ import os
 import numpy as np
 import tensorflow as tf
 
-from estimators.alexnet import build_estimator
+from estimators.lenet5 import build_estimator
 from cifar10_dataset import input_fn
 
 tf.logging.set_verbosity(tf.logging.INFO)
@@ -56,7 +56,6 @@ def main(args):
     run_config = tf.estimator.RunConfig()
     run_config = run_config.replace(model_dir=args.job_dir)
     run_config = run_config.replace(session_config=session_config)
-    run_config = run_config.replace(save_summary_steps=1000)
 
     estimator = build_estimator(run_config, {
         'learning_rate': 0.001

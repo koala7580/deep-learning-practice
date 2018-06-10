@@ -82,10 +82,11 @@ def generate_kline_and_label(start_date, buy_date, sell_date, df):
 		sell_day_high = sell_day_df['high'].iloc[0]
 
 		# NOTE: The label condition could be change here.
+		ratio = (sell_day_high - buy_day_close) / buy_day_close * 100
 		label = (buy_day_close * 1.015 < sell_day_high) and 1 or 0
 
 		img_bytes = draw(sub_df)
-		return img_bytes, label
+		return img_bytes, label, ratio
 	else:
 		if buy_day_df.empty:
 			raise ValueError('Buy day has no data.')
@@ -96,33 +97,47 @@ def generate_kline_and_label(start_date, buy_date, sell_date, df):
 
 def main(args):
 	hdf_file_path = os.path.join(args.data_dir, args.hdf)
-	tfrecords_file_path = os.path.join(args.data_dir, args.tfrecords)
+	train_tfrecords_file_path = os.path.join(args.data_dir, 'stock_train.tfrecords')
+	eval_tfrecords_file_path = os.path.join(args.data_dir, 'stock_eval.tfrecords')
 
 	assert os.path.exists(hdf_file_path)
 
-	if os.path.exists(tfrecords_file_path):
-		print('Remove file: {}'.format(tfrecords_file_path))
-		os.unlink(tfrecords_file_path)
+	if os.path.exists(train_tfrecords_file_path):
+		print('Remove file: %s' % train_tfrecords_file_path)
+		os.unlink(train_tfrecords_file_path)
+
+	if os.path.exists(eval_tfrecords_file_path):
+		print('Remove file: %s' % eval_tfrecords_file_path)
+		os.unlink(eval_tfrecords_file_path)
 
 	date_list = collect_date_list(hdf_file_path)
 
-	with tf.python_io.TFRecordWriter(tfrecords_file_path) as record_writer:
-		for code in SH50:
-			df = read_stock_data(hdf_file_path, code)
+	str2date = lambda d: datetime.datetime.strptime(d, '%Y-%m-%d')
+	split_date = str2date(args.split_date)
 
-			for i in range(len(date_list) - 121):
-				start_date = date_list[i]
-				buy_date = date_list[i + 120]
-				sell_date = date_list[i + 121]
+	with tf.python_io.TFRecordWriter(train_tfrecords_file_path) as train_record_writer:
+		with tf.python_io.TFRecordWriter(eval_tfrecords_file_path) as eval_record_writer:
+			for code in SH50:
+				df = read_stock_data(hdf_file_path, code)
 
-				try:
-					img_bytes, label = generate_kline_and_label(start_date, buy_date, sell_date, df)
-				except ValueError:
-					continue
+				for i in range(len(date_list) - 121):
+					start_date = date_list[i]
+					buy_date = date_list[i + 120]
+					sell_date = date_list[i + 121]
 
-				example = make_example(img_bytes, label, buy_date, sell_date, code)
-				record_writer.write(example.SerializeToString())
-				print('{} B {} S {} L {}'.format(code, buy_date, sell_date, label))
+					try:
+						img_bytes, label, ratio = generate_kline_and_label(start_date, buy_date, sell_date, df)
+					except ValueError:
+						continue
+
+					example = make_example(img_bytes, label, buy_date, sell_date, code)
+
+					if str2date(buy_date) < split_date:
+						train_record_writer.write(example.SerializeToString())
+						print('T {} B {} S {} L {} R {:5.2f}'.format(code, buy_date, sell_date, label, ratio))
+					else:
+						eval_record_writer.write(example.SerializeToString())
+						print('E {} B {} S {} L {} R {:5.2f}'.format(code, buy_date, sell_date, label, ratio))
 
 
 if __name__ == '__main__':
@@ -139,11 +154,12 @@ if __name__ == '__main__':
 		default='kline_raw.hdf',
 		help='Filename to load kline raw data.')
 
+	default_split_date = datetime.date.today() - datetime.timedelta(days = 7)
 	parser.add_argument(
-		'--tfrecords',
+		'--split_date',
 		type=str,
-		default='kline.tfrecords',
-		help='Filename to store training data.')
+		default=default_split_date.strftime('%Y-%m-%d'),
+		help='Default split date for train and eval dataset.')
 
 	args = parser.parse_args()
 	main(args)
