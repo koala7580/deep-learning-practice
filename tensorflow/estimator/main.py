@@ -53,6 +53,9 @@ def main(args):
         intra_op_parallelism_threads=args.num_intra_threads,
         gpu_options=tf.GPUOptions(force_gpu_compatible=True))
 
+    if args.cpu_only:
+        session_config.device_count = { 'GPU': 0 }
+
     run_config = tf.estimator.RunConfig()
     run_config = run_config.replace(model_dir=args.job_dir)
     run_config = run_config.replace(session_config=session_config)
@@ -151,6 +154,11 @@ if __name__ == '__main__':
         type=float,
         default=1e-5,
         help='Epsilon for batch norm.')
+    parser.add_argument(
+        '--cpu-only',
+        type='store_true',
+        default=False,
+        help='Use only CPU to train the model.')
     args = parser.parse_args()
 
     main(args)
