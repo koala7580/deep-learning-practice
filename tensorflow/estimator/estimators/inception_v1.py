@@ -5,14 +5,21 @@
 参考文章：https://hacktilldawn.com/2016/09/25/inception-modules-explained-and-implemented/
 参考文章：https://blog.csdn.net/hejin_some/article/details/78636586
 
-结果记录：
-2018-06-10 step=100000 loss = 0.73 accuracy=0.7412
+这个网络太大，没法在我的小 GPU 上训练，所以没有得到最后的结果。
 """
 import os
 
 import numpy as np
 import tensorflow as tf
-from estimators.utils import conv2d_layer
+
+
+def conv2d_layer(inputs, filters, kernel_size, strides=1, **kwargs):
+    return tf.layers.conv2d(
+        inputs=inputs,
+        filters=filters,
+        kernel_size=kernel_size,
+        strides=strides,
+        activation=tf.nn.relu, **kwargs)
 
 
 def inception(inputs,

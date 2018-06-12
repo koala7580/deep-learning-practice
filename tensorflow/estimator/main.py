@@ -156,7 +156,7 @@ if __name__ == '__main__':
         help='Epsilon for batch norm.')
     parser.add_argument(
         '--cpu-only',
-        type='store_true',
+        action='store_true',
         default=False,
         help='Use only CPU to train the model.')
     args = parser.parse_args()
