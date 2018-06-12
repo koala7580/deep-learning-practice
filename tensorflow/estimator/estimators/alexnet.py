@@ -7,76 +7,45 @@
 结果记录：
 2018-06-10 step=100000 loss = 0.73 accuracy=0.7412
 """
-import os
-
-import numpy as np
 import tensorflow as tf
+
+
+def conv2d_layer(inputs, filters, kernel_size, strides=1, **kwargs):
+    return tf.layers.conv2d(
+        inputs=inputs,
+        filters=filters,
+        kernel_size=kernel_size,
+        strides=strides,
+        activation=tf.nn.relu, **kwargs
+    )
 
 
 def construct_model(input_layer, is_training):
     """Construct the model."""
-    conv1 = tf.layers.conv2d(
-        inputs=input_layer,
-        filters=96,
-        kernel_size=11,
-        padding="valid",
-        strides=4,
-        activation=tf.nn.relu,
-        name="conv1")
+    net = conv2d_layer(input_layer, 96, 11, 4, name='conv1')
+    net = tf.nn.lrn(net, 5, name="lrn1")
 
-    pool1 = tf.layers.max_pooling2d(inputs=conv1, pool_size=3, strides=2, name="pool1")
+    net = tf.layers.max_pooling2d(net, 3, strides=2, name="pool1")
 
-    lrn1 = tf.nn.lrn(pool1, 5, name="lrn1")
+    net = conv2d_layer(net, 256, 5, padding='same', name='conv2')
+    net = tf.nn.lrn(net, 5, name='lrn2')
+    net = tf.layers.max_pooling2d(net, 3, strides=2, name="pool2")
 
-    conv2 = tf.layers.conv2d(
-        inputs=lrn1,
-        filters=256,
-        kernel_size=5,
-        padding='valid',
-        activation=tf.nn.relu,
-        name="conv2")
+    net = conv2d_layer(net, 384, 3, padding='same', name='conv3')
+    net = conv2d_layer(net, 384, 3, padding='same', name='conv4')
+    net = conv2d_layer(net, 256, 3, padding='same', name='conv5')
 
-    pool2 = tf.layers.max_pooling2d(inputs=conv2, pool_size=3, strides=2, name="pool2")
-
-    lrn2 = tf.nn.lrn(pool2, 5, name='lrn2')
-
-    conv3 = tf.layers.conv2d(
-        inputs=lrn2,
-        filters=384,
-        kernel_size=3,
-        padding='valid',
-        activation=tf.nn.relu,
-        name="conv3")
-
-    conv4 = tf.layers.conv2d(
-        inputs=conv3,
-        filters=384,
-        kernel_size=3,
-        padding='valid',
-        activation=tf.nn.relu,
-        name="conv4")
-
-    conv5 = tf.layers.conv2d(
-        inputs=conv4,
-        filters=256,
-        kernel_size=3,
-        padding='valid',
-        activation=tf.nn.relu,
-        name="conv5")
-
-    pool5 = tf.layers.max_pooling2d(inputs=conv5, pool_size=3, strides=2, name="pool5")
+    net = tf.layers.max_pooling2d(net, 3, strides=2, name="pool5")
 
     # Dense Layer
-    flatten = tf.reshape(pool5, [-1, 256])
+    flatten = tf.layers.flatten(net)
     dense6 = tf.layers.dense(inputs=flatten, units=4096, activation=tf.nn.relu)
     dropout6 = tf.layers.dropout(inputs=dense6, rate=0.4, training=is_training)
     dense7 = tf.layers.dense(inputs=dropout6, units=4096, activation=tf.nn.relu)
     dropout7 = tf.layers.dropout(inputs=dense7, rate=0.4, training=is_training)
-    dense8 = tf.layers.dense(inputs=dropout7, units=1000, activation=tf.nn.relu)
-    dropout8 = tf.layers.dropout(inputs=dense8, rate=0.4, training=is_training)
 
     # Logits Layer
-    logits = tf.layers.dense(inputs=dropout8, units=10)
+    logits = tf.layers.dense(inputs=dropout7, units=10)
 
     return logits
 

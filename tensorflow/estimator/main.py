@@ -25,7 +25,7 @@ import os
 import numpy as np
 import tensorflow as tf
 
-from estimators.vgg import build_estimator
+from estimators.resnet import build_estimator
 from cifar10_dataset import input_fn
 
 tf.logging.set_verbosity(tf.logging.INFO)
@@ -52,7 +52,6 @@ def main(args):
         allow_soft_placement=True,
         log_device_placement=args.log_device_placement,
         intra_op_parallelism_threads=args.num_intra_threads,
-        report_tensor_allocations_upon_oom=True,
         gpu_options=gpu_options)
 
     if args.cpu_only:
