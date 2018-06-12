@@ -25,7 +25,7 @@ import os
 import numpy as np
 import tensorflow as tf
 
-from estimators.inception_v1 import build_estimator
+from estimators.vgg import build_estimator
 from cifar10_dataset import input_fn
 
 tf.logging.set_verbosity(tf.logging.INFO)
@@ -47,11 +47,13 @@ def main(args):
     os.environ['TF_ENABLE_WINOGRAD_NONFUSED'] = '1'
 
     # Session configuration.
+    gpu_options = tf.GPUOptions(force_gpu_compatible=True, allow_growth=True)
     session_config = tf.ConfigProto(
         allow_soft_placement=True,
         log_device_placement=args.log_device_placement,
         intra_op_parallelism_threads=args.num_intra_threads,
-        gpu_options=tf.GPUOptions(force_gpu_compatible=True))
+        report_tensor_allocations_upon_oom=True,
+        gpu_options=gpu_options)
 
     if args.cpu_only:
         session_config.device_count = { 'GPU': 0 }
