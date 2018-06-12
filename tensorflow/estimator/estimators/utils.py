@@ -47,7 +47,11 @@ def build_model_fn(construct_model, resize_image=True):
 
         # Configure the Training Op (for TRAIN mode)
         if mode == tf.estimator.ModeKeys.TRAIN:
-            optimizer = tf.train.GradientDescentOptimizer(learning_rate=params['learning_rate'])
+            # optimizer = tf.train.GradientDescentOptimizer(learning_rate=params['learning_rate'])
+            # optimizer = tf.train.MomentumOptimizer(learning_rate=params['learning_rate'], momentum=0.9)
+            # optimizer = tf.train.AdagradOptimizer(params['learning_rate'])
+            optimizer = tf.train.AdamOptimizer(params['learning_rate'])
+
             train_op = optimizer.minimize(
                 loss=loss,
                 global_step=tf.train.get_global_step())

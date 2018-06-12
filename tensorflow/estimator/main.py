@@ -25,8 +25,8 @@ import os
 import numpy as np
 import tensorflow as tf
 
-from estimators.alexnet import build_estimator
-# from estimators.resnet import build_estimator
+# from estimators.alexnet import build_estimator
+from estimators.resnet import build_estimator
 from cifar10_dataset import input_fn
 
 tf.logging.set_verbosity(tf.logging.INFO)
