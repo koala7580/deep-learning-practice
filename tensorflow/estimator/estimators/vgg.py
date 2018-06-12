@@ -25,7 +25,7 @@ def max_pool_layer(inputs, **kwargs):
         return tf.layers.max_pooling2d(inputs, 2, 2, **kwargs)
 
 
-def construct_model(input_layer, is_training):
+def construct_model(input_layer, is_training, **kwargs):
     """Construct the model."""
     # Group 1
     conv1_1 = conv2d_layer(input_layer, 64, name='conv1_1')

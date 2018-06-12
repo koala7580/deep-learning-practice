@@ -46,7 +46,7 @@ def inception(inputs,
     return tf.concat([conv_1x1, conv_3x3, conv_5x5, pool_1x1], 3)
 
 
-def construct_model(input_layer, is_training):
+def construct_model(input_layer, is_training, **kwargs):
     """Construct the model."""
     paddings1 = tf.constant([[0, 0], [1, 1], [1, 1], [0, 0]])
     # paddings2 = tf.constant([[0, 0], [2, 2], [2, 2], [0, 0]])

@@ -11,7 +11,7 @@ import tensorflow as tf
 from estimators.utils import build_model_fn
 
 
-def construct_model(input_layer, is_training):
+def construct_model(input_layer, is_training, **kwargs):
     """Construct the model."""
     # C1
     conv_c1 = tf.layers.conv2d(

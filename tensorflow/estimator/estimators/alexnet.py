@@ -21,7 +21,7 @@ def conv2d_layer(inputs, filters, kernel_size, strides=1, **kwargs):
     )
 
 
-def construct_model(input_layer, is_training):
+def construct_model(input_layer, is_training, **kwargs):
     """Construct the model."""
     net = conv2d_layer(input_layer, 96, 11, 4, name='conv1')
     net = tf.nn.lrn(net, 5, name="lrn1")
