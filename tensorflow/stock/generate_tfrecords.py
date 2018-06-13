@@ -11,7 +11,6 @@ import io
 import os
 import sys
 import argparse
-import datetime
 
 import pandas as pd
 import matplotlib as mpl
@@ -23,6 +22,8 @@ from download_data import SH50
 
 plt.switch_backend('agg')
 
+IMAGE_WIDTH = 21
+IMAGE_HEIGHT = 7
 
 def read_stock_data(file_path, code):
 	return pd.read_hdf(file_path, 'SH' + code)
@@ -42,7 +43,7 @@ def collect_date_list(file_path):
 
 
 def draw(data):
-	fig = plt.figure(figsize=(21, 7))
+	fig = plt.figure(figsize=(IMAGE_WIDTH, IMAGE_HEIGHT))
 	ax = fig.add_subplot(1, 1, 1)
 
 	mpf.candlestick2_ochl(ax, data['open'], data['close'], data['high'], data['low'],
@@ -111,9 +112,9 @@ def main(args):
 
 	date_list = collect_date_list(hdf_file_path)
 
-	str2date = lambda d: datetime.datetime.strptime(d, '%Y-%m-%d')
-	split_date = str2date(args.split_date)
-
+	total_count = 0
+	train_count = 0
+	eval_count = 0
 	with tf.python_io.TFRecordWriter(train_tfrecords_file_path) as train_record_writer:
 		with tf.python_io.TFRecordWriter(eval_tfrecords_file_path) as eval_record_writer:
 			for code in SH50:
@@ -131,12 +132,16 @@ def main(args):
 
 					example = make_example(img_bytes, label, buy_date, sell_date, code)
 
-					if str2date(buy_date) < split_date:
+					if i < len(date_list) - 121 - args.split_at:
 						train_record_writer.write(example.SerializeToString())
 						print('T {} B {} S {} L {} R {:5.2f}'.format(code, buy_date, sell_date, label, ratio))
+						train_count += 1
 					else:
 						eval_record_writer.write(example.SerializeToString())
 						print('E {} B {} S {} L {} R {:5.2f}'.format(code, buy_date, sell_date, label, ratio))
+						eval_count += 1
+					total_count += 1
+	print('Total records: %d, %d train, %d eval' % (total_count, train_count, eval_count))
 
 
 if __name__ == '__main__':
@@ -153,12 +158,11 @@ if __name__ == '__main__':
 		default='kline_raw.hdf',
 		help='Filename to load kline raw data.')
 
-	default_split_date = datetime.date.today() - datetime.timedelta(days = 7)
 	parser.add_argument(
-		'--split-date',
-		type=str,
-		default=default_split_date.strftime('%Y-%m-%d'),
-		help='Default split date for train and eval dataset.')
+		'--split-at',
+		type=int,
+		default=10,
+		help='Default split index for train and eval dataset.')
 
 	args = parser.parse_args()
 	main(args)

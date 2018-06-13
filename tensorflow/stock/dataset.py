@@ -4,10 +4,9 @@ import os
 
 import tensorflow as tf
 
-HEIGHT = 700
-WIDTH = 2100
-DEPTH = 3
-
+IMAGE_HEIGHT = 700
+IMAGE_WIDTH = 2100
+IMAGe_DEPTH = 3
 
 class DataSet:
     """data set.
@@ -36,20 +35,17 @@ class DataSet:
                 'code': tf.FixedLenFeature([], tf.string),
             }
         )
-        image = tf.image.decode_png(features['image'])
-        image.set_shape([WIDTH, HEIGHT, DEPTH])
+        image = tf.image.decode_png(features['image'], channels=IMAGe_DEPTH)
+        image.set_shape([IMAGE_HEIGHT, IMAGE_WIDTH, IMAGe_DEPTH])
 
-        # Reshape from [depth * height * width] to [depth, height, width].
-        image = tf.cast(
-            tf.transpose(tf.reshape(image, [DEPTH, HEIGHT, WIDTH]), [1, 2, 0]),
-            tf.float32)
+        image = tf.cast(image, tf.float32)
         label = tf.cast(features['label'], tf.int32)
 
         # Custom preprocessing.
         image = self.preprocess(image)
 
         # normalize the image to [-1, 1]
-        image = image / 128.0 - 1.0
+        image = image / 128 - 1.0
 
         return image, label
 
@@ -83,8 +79,8 @@ class DataSet:
         """Preprocess a single image in [height, width, depth] layout."""
         if self.subset == 'train' and self.use_distortion:
             # Pad 4 pixels on each dimension of feature map, done in mini-batch
-            image = tf.image.resize_image_with_crop_or_pad(image, 2104, 704)
-            image = tf.random_crop(image, [HEIGHT, WIDTH, DEPTH])
+            image = tf.image.resize_image_with_crop_or_pad(image, IMAGE_HEIGHT + 4, IMAGE_WIDTH + 4)
+            image = tf.random_crop(image, [IMAGE_HEIGHT, IMAGE_WIDTH, IMAGe_DEPTH])
         return image
 
     @staticmethod
