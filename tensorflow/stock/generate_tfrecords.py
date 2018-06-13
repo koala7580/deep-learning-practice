@@ -9,6 +9,7 @@ pip 仓库里，所以需要这样安装：
 """
 import io
 import os
+import sys
 import argparse
 import datetime
 
@@ -41,13 +42,11 @@ def collect_date_list(file_path):
 
 
 def draw(data):
-	fig = plt.figure(figsize=(15, 5))
+	fig = plt.figure(figsize=(21, 7))
 	ax = fig.add_subplot(1, 1, 1)
-	#ax.set_xticks(range(0, len(data['date']), 20))
-	#ax.set_xticklabels(data['date'][::20])
 
 	mpf.candlestick2_ochl(ax, data['open'], data['close'], data['high'], data['low'],
-                      	  width=0.7, colorup='#804020', colordown='#208040',
+                      	  width=0.6, colorup='#804020', colordown='#208040',
                       	  alpha=1.0)
 
 	with io.BytesIO() as image_buffer:
@@ -143,7 +142,7 @@ def main(args):
 if __name__ == '__main__':
 	parser = argparse.ArgumentParser()
 	parser.add_argument(
-		'--data_dir',
+		'--data-dir',
 		type=str,
 		default='/tmp/stock',
 		help='Directory to load and store stock data.')
@@ -156,7 +155,7 @@ if __name__ == '__main__':
 
 	default_split_date = datetime.date.today() - datetime.timedelta(days = 7)
 	parser.add_argument(
-		'--split_date',
+		'--split-date',
 		type=str,
 		default=default_split_date.strftime('%Y-%m-%d'),
 		help='Default split date for train and eval dataset.')

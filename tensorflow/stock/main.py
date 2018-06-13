@@ -25,8 +25,9 @@ import os
 import numpy as np
 import tensorflow as tf
 
-from estimators.lenet5 import build_estimator
-from cifar10_dataset import input_fn
+from estimators.alexnet import build_estimator
+from utils import build_model_fn
+from dataset import input_fn
 
 tf.logging.set_verbosity(tf.logging.INFO)
 
@@ -58,13 +59,13 @@ def main(args):
     run_config = run_config.replace(session_config=session_config)
 
     estimator = build_estimator(run_config, {
-        'learning_rate': 0.001
-    })
+        'learning_rate': args.learning_rate
+    }, build_model_fn)
 
     train_input = lambda: input_fn(args.data_dir, 'train', args.train_batch_size)
     train_spec = tf.estimator.TrainSpec(train_input, max_steps=args.train_steps)
 
-    eval_input = lambda: input_fn(args.data_dir, 'validation', args.eval_batch_size)
+    eval_input = lambda: input_fn(args.data_dir, 'eval', args.eval_batch_size)
     exporter = tf.estimator.FinalExporter('cifar10', json_serving_input_fn)
     eval_spec = tf.estimator.EvalSpec(eval_input,
                                       steps=100,

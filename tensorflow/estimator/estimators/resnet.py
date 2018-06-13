@@ -5,7 +5,8 @@
 参考文章：https://blog.csdn.net/qq_25491201/article/details/78405549
 
 结果记录：
-2018-06-09 step=100000 loss = 1.16 accuracy=0.5826
+ResNet-18
+    2018-06-12 step=100000 loss = 0.5858 accuracy=0.8402
 """
 import tensorflow as tf
 from estimators.utils import build_model_fn
