@@ -6,7 +6,7 @@ import tensorflow as tf
 
 IMAGE_HEIGHT = 224
 IMAGE_WIDTH = 224 * 3
-IMAGe_DEPTH = 3
+IMAGE_DEPTH = 3
 
 class DataSet:
     """data set.
@@ -36,9 +36,9 @@ class DataSet:
             }
         )
         image = tf.decode_raw(features['image'], tf.uint8)
-        image.set_shape([IMAGE_HEIGHT * IMAGE_WIDTH * IMAGe_DEPTH])
+        image.set_shape([IMAGE_HEIGHT * IMAGE_WIDTH * IMAGE_DEPTH])
 
-        image = tf.cast(tf.reshape(image, [IMAGE_HEIGHT, IMAGE_WIDTH, IMAGe_DEPTH]), tf.float32)
+        image = tf.cast(tf.reshape(image, [IMAGE_HEIGHT, IMAGE_WIDTH, IMAGE_DEPTH]), tf.float32)
         label = tf.cast(features['label'], tf.int32)
 
         # Custom preprocessing.
@@ -53,7 +53,7 @@ class DataSet:
         """Read the images and labels from 'filenames'."""
         filenames = self.get_filenames()
         # Repeat infinitely.
-        dataset = tf.data.TFRecordDataset(filenames)
+        dataset = tf.data.TFRecordDataset(filenames, compression_type='GZIP')
 
         # Parse records.
         dataset = dataset.map(self.parser)
@@ -80,12 +80,12 @@ class DataSet:
         if self.subset == 'train' and self.use_distortion:
             # Pad 4 pixels on each dimension of feature map, done in mini-batch
             image = tf.image.resize_image_with_crop_or_pad(image, IMAGE_HEIGHT + 4, IMAGE_WIDTH + 4)
-            image = tf.random_crop(image, [IMAGE_HEIGHT, IMAGE_WIDTH, IMAGe_DEPTH])
+            image = tf.random_crop(image, [IMAGE_HEIGHT, IMAGE_WIDTH, IMAGE_DEPTH])
         return image
 
     @staticmethod
     def num_examples_per_epoch(subset='train'):
-        epoch_dict = { 
+        epoch_dict = {
             'train': 45000,
             'eval': 10000
         }

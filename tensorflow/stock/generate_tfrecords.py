@@ -122,8 +122,9 @@ def main(args):
 	total_count = 0
 	train_count = 0
 	eval_count = 0
-	with tf.python_io.TFRecordWriter(train_tfrecords_file_path) as train_record_writer:
-		with tf.python_io.TFRecordWriter(eval_tfrecords_file_path) as eval_record_writer:
+	options = tf.python_io.TFRecordOptions(tf.python_io.TFRecordCompressionType.GZIP)
+	with tf.python_io.TFRecordWriter(train_tfrecords_file_path, options=options) as train_record_writer:
+		with tf.python_io.TFRecordWriter(eval_tfrecords_file_path, options=options) as eval_record_writer:
 			for code in SH50:
 				df = read_stock_data(hdf_file_path, code)
 

@@ -1,25 +1,6 @@
-# Copyright 2017 The TensorFlow Authors. All Rights Reserved.
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-# ==============================================================================
-"""Tensorflow estimators for classifying images from CIFAR-10 dataset.
-Support single-host training with one or multiple devices.
-This notebook explained the usage of train_and_evaluate:
-https://github.com/amygdala/code-snippets/blob/master/ml/census_train_and_eval/using_tf.estimator.train_and_evaluate.ipynb
+"""Tensorflow estimators for stock prediction.
 """
 import argparse
-import functools
-import itertools
 import os
 
 import numpy as np
@@ -66,11 +47,11 @@ def main(args):
     train_spec = tf.estimator.TrainSpec(train_input, max_steps=args.train_steps)
 
     eval_input = lambda: input_fn(args.data_dir, 'eval', args.eval_batch_size)
-    exporter = tf.estimator.FinalExporter('cifar10', json_serving_input_fn)
+    exporter = tf.estimator.FinalExporter('stock', json_serving_input_fn)
     eval_spec = tf.estimator.EvalSpec(eval_input,
                                       steps=100,
                                       exporters=[exporter],
-                                      name='cifar10-eval')
+                                      name='stock-eval')
 
     tf.estimator.train_and_evaluate(estimator, train_spec, eval_spec)
 
@@ -95,27 +76,17 @@ if __name__ == '__main__':
     parser.add_argument(
         '--train-batch-size',
         type=int,
-        default=128,
+        default=16,
         help='Batch size for training.')
     parser.add_argument(
         '--eval-batch-size',
         type=int,
-        default=100,
+        default=16,
         help='Batch size for validation.')
-    parser.add_argument(
-        '--momentum',
-        type=float,
-        default=0.9,
-        help='Momentum for MomentumOptimizer.')
-    parser.add_argument(
-        '--weight-decay',
-        type=float,
-        default=2e-4,
-        help='Weight decay for convolutions.')
     parser.add_argument(
         '--learning-rate',
         type=float,
-        default=0.1,
+        default=0.01,
         help="""\
         This is the inital learning rate value. The learning rate will decrease
         during training. For more details check the model_fn implementation in
@@ -141,16 +112,6 @@ if __name__ == '__main__':
         action='store_true',
         default=False,
         help='Whether to log device placement.')
-    parser.add_argument(
-        '--batch-norm-decay',
-        type=float,
-        default=0.997,
-        help='Decay for batch norm.')
-    parser.add_argument(
-        '--batch-norm-epsilon',
-        type=float,
-        default=1e-5,
-        help='Epsilon for batch norm.')
     args = parser.parse_args()
 
     main(args)
