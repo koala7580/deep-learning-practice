@@ -4,8 +4,8 @@ import os
 
 import tensorflow as tf
 
-IMAGE_HEIGHT = 700
-IMAGE_WIDTH = 2100
+IMAGE_HEIGHT = 224
+IMAGE_WIDTH = 224 * 3
 IMAGe_DEPTH = 3
 
 class DataSet:
@@ -35,10 +35,10 @@ class DataSet:
                 'code': tf.FixedLenFeature([], tf.string),
             }
         )
-        image = tf.image.decode_png(features['image'], channels=IMAGe_DEPTH)
-        image.set_shape([IMAGE_HEIGHT, IMAGE_WIDTH, IMAGe_DEPTH])
+        image = tf.decode_raw(features['image'], tf.uint8)
+        image.set_shape([IMAGE_HEIGHT * IMAGE_WIDTH * IMAGe_DEPTH])
 
-        image = tf.cast(image, tf.float32)
+        image = tf.cast(tf.reshape(image, [IMAGE_HEIGHT, IMAGE_WIDTH, IMAGe_DEPTH]), tf.float32)
         label = tf.cast(features['label'], tf.int32)
 
         # Custom preprocessing.

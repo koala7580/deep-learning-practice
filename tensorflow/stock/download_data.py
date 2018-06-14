@@ -59,13 +59,13 @@ def main(args):
 if __name__ == '__main__':
 	parser = argparse.ArgumentParser()
 	parser.add_argument(
-		'--data_dir',
+		'--data-dir',
 		type=str,
 		default='/tmp/stock',
 		help='Directory to download and store stock data to.')
 
 	parser.add_argument(
-		'--start_date',
+		'--start-date',
 		type=str,
 		default='2017-01-01',
 		help='Start date to download.')

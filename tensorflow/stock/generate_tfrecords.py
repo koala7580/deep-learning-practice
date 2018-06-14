@@ -11,19 +11,21 @@ import io
 import os
 import sys
 import argparse
-
+ 
 import pandas as pd
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import mpl_finance as mpf
 import tensorflow as tf
+import skimage
+import skimage.io as skimage_io
+import skimage.color as skimage_color
+import skimage.transform as skimage_transform
 
 from download_data import SH50
 
 plt.switch_backend('agg')
 
-IMAGE_WIDTH = 21
-IMAGE_HEIGHT = 7
 
 def read_stock_data(file_path, code):
 	return pd.read_hdf(file_path, 'SH' + code)
@@ -43,7 +45,7 @@ def collect_date_list(file_path):
 
 
 def draw(data):
-	fig = plt.figure(figsize=(IMAGE_WIDTH, IMAGE_HEIGHT))
+	fig = plt.figure(figsize=(21, 7))
 	ax = fig.add_subplot(1, 1, 1)
 
 	mpf.candlestick2_ochl(ax, data['open'], data['close'], data['high'], data['low'],
@@ -54,7 +56,12 @@ def draw(data):
 		fig.savefig(image_buffer, format='png')
 		plt.close(fig)
 
-		return image_buffer.getvalue()
+		image_data = skimage_io.imread(image_buffer)
+		image_rgb = skimage_color.rgba2rgb(image_data)
+		image_resized = skimage_transform.resize(image_rgb, (224, 224 * 3), order=3, preserve_range=True)
+		image_ubyte = skimage.img_as_ubyte(image_resized)
+
+		return image_ubyte.tobytes()
 
 
 def make_example(image, label, buy_date, sell_date, code):
