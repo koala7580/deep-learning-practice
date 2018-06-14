@@ -86,8 +86,8 @@ class DataSet:
     @staticmethod
     def num_examples_per_epoch(subset='train'):
         epoch_dict = {
-            'train': 45000,
-            'eval': 10000
+            'train': 4500,
+            'eval': 1000
         }
         if subset in epoch_dict:
             return epoch_dict[subset]
