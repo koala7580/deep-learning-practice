@@ -25,9 +25,10 @@ import os
 import numpy as np
 import tensorflow as tf
 
-# from estimators.alexnet import build_estimator
-from estimators.resnet import build_estimator
+# from estimators.alexnet import build_model as alexnet_build_model
+from estimators.resnet import build_model as resnet_build_nodel
 from cifar10_dataset import input_fn
+from utils import build_model_fn
 
 tf.logging.set_verbosity(tf.logging.INFO)
 
@@ -55,17 +56,18 @@ def main(args):
         intra_op_parallelism_threads=args.num_intra_threads,
         gpu_options=gpu_options)
 
-    if args.cpu_only:
-        session_config.device_count = { 'GPU': 0 }
-
     run_config = tf.estimator.RunConfig()
     run_config = run_config.replace(model_dir=args.job_dir)
     run_config = run_config.replace(session_config=session_config)
     run_config = run_config.replace(save_summary_steps=1000)
 
-    estimator = build_estimator(run_config, {
-        'learning_rate': 0.001
-    })
+    estimator = tf.estimator.Estimator(
+        model_fn=build_model_fn(resnet_build_nodel, args),
+        config=run_config,
+        params={
+            'input': lambda features: features['image']
+        }
+    )
 
     train_input = lambda: input_fn(args.data_dir, 'train', args.train_batch_size)
     train_spec = tf.estimator.TrainSpec(train_input, max_steps=args.train_steps)
@@ -157,10 +159,23 @@ if __name__ == '__main__':
         default=1e-5,
         help='Epsilon for batch norm.')
     parser.add_argument(
-        '--cpu-only',
-        action='store_true',
-        default=False,
-        help='Use only CPU to train the model.')
+        '--num-layers',
+        type=int,
+        default=44,
+        help='The number of layers of the ResNet model.')
+    parser.add_argument(
+        '--data-format',
+        type=str,
+        default='channels_last',
+        help="""\
+        If not set, the data format best for the training device is used. 
+        Allowed values: channels_first (NCHW) channels_last (NHWC).\
+        """)
     args = parser.parse_args()
+
+    if (args.num_layers - 2) % 6 != 0:
+        raise ValueError('Invalid --num-layers parameter.')
+    if args.data_format not in ['channels_first', 'channels_last']:
+        raise ValueError('Invalid --data-format parameter.')
 
     main(args)
