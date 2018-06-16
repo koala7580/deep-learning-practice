@@ -1,131 +1,90 @@
 # -*- coding: utf-8 -*-
-"""VGG 模型"""
-import os
+"""VGG model
 
-import numpy as np
+论文地址：https://arxiv.org/pdf/1409.1556.pdf
+参考文章：https://hackernoon.com/learning-keras-by-implementing-vgg16-from-scratch-d036733f2d5
+
+结果记录：
+2018-06-10 step=100000 loss = 0.73 accuracy=0.7412
+"""
 import tensorflow as tf
+from estimators.base import BaseEstimator
 
+class VGG16(BaseEstimator):
+    """VGG model."""
 
-FLAGS = tf.app.flags.FLAGS
-
-
-class VggEstimator(tf.estimator.Estimator):
-    """VGG Estimator."""
-
-    def __init__(self, params=None, config=None):
-        """Init the estimator.
+    def __init__(self, is_training, data_format, batch_norm_decay, batch_norm_epsilon):
+        """VGG constructor.
+        Args:
+        is_training: if build training or inference model.
+        data_format: the data_format used during computation.
+                    one of 'channels_first' or 'channels_last'.
         """
-        super().__init__(
-            model_fn=self.the_model_fn,
-            model_dir=FLAGS.model_dir,
-            config=config,
-            params=params
-        )
+        self._batch_norm_decay = batch_norm_decay
+        self._batch_norm_epsilon = batch_norm_epsilon
+        self._is_training = is_training
+        assert data_format in ('channels_first', 'channels_last')
+        self._data_format = data_format
 
+    def build_model(self, x):
+        with tf.name_scope('group_1'):
+            x = self._conv_bn(x, 64, 'conv1_1')
+            x = self._conv_bn(x, 64, 'conv1_2')
+            x = self._max_pool(x, 2, 2)
 
-    def the_model_fn(self, features, labels, mode, params):
-        """Estimator model function.
+        with tf.name_scope('group_2'):
+            x = self._conv_bn(x, 128, 'conv2_1')
+            x = self._conv_bn(x, 128, 'conv2_2')
+            x = self._max_pool(x, 2, 2)
 
-        Arguments:
-            features {Tensor} -- features in input
-            labels {Tensor} -- labels of features
-            mode {tf.estimator.ModeKeys} -- mode key
-            params {any} -- model params
-        """
-        # Use `input_layer` to apply the feature columns.
-        input_images = tf.reshape(features, [-1, 500, 500, 3])
-        input_layer = tf.image.resize_images(input_images, [224, 224])
-        tf.summary.image('image', input_images)
+        with tf.name_scope('group_3'):
+            x = self._conv_bn(x, 256, 'conv3_1')
+            x = self._conv_bn(x, 256, 'conv3_2')
+            x = self._conv_bn(x, 256, 'conv3_3')
+            x = self._max_pool(x, 2, 2)
 
-        logits = self.construct_model_vgg16(input_layer, mode == tf.estimator.ModeKeys.TRAIN)
+        with tf.name_scope('group_4'):
+            x = self._conv_bn(x, 512, 'conv4_1')
+            x = self._conv_bn(x, 512, 'conv4_2')
+            x = self._conv_bn(x, 512, 'conv4_3')
+            x = self._max_pool(x, 2, 2)
 
-        predictions = {
-            # Generate predictions (for PREDICT and EVAL mode)
-            "classes": tf.argmax(input=logits, axis=1),
-            # Add `softmax_tensor` to the graph. It is used for PREDICT and by the
-            # `logging_hook`.
-            "probabilities": tf.nn.softmax(logits, name="softmax_tensor")
-        }
-
-        if mode == tf.estimator.ModeKeys.PREDICT:
-            return tf.estimator.EstimatorSpec(mode=mode, predictions=predictions)
-
-        # Calculate Loss (for both TRAIN and EVAL modes)
-        loss = tf.losses.sparse_softmax_cross_entropy(labels=labels, logits=logits)
-        
-        accuracy = tf.metrics.accuracy(labels=labels, predictions=predictions["classes"])
-        # accuracy_mean = tf.reduce_mean(accuracy, name='accuracy_mean')
-        # tf.summary.scalar('accuracy_mean', accuracy_mean)
-
-        # Configure the Training Op (for TRAIN mode)
-        if mode == tf.estimator.ModeKeys.TRAIN:
-            optimizer = tf.train.GradientDescentOptimizer(learning_rate=FLAGS.learning_rate)
-            train_op = optimizer.minimize(
-                loss=loss,
-                global_step=tf.train.get_global_step())
-            return tf.estimator.EstimatorSpec(mode=mode, loss=loss, train_op=train_op)
-
-        # Add evaluation metrics (for EVAL mode)
-        eval_metric_ops = { "accuracy": accuracy }
-        return tf.estimator.EstimatorSpec(
-            mode=mode, loss=loss, eval_metric_ops=eval_metric_ops)
-
-
-    def conv_layer(self, inputs, filters):
-        return tf.layers.conv2d(
-            inputs=inputs,
-            filters=filters,
-            kernel_size=3,
-            padding='same',
-            activation=tf.nn.relu)
-
-
-    def pool_layer(self, inputs):
-        return tf.layers.max_pooling2d(inputs=inputs, pool_size=2, strides=2)
-
-
-    def construct_model_vgg16(self, input_layer, is_training):
-        """Construct the model."""
-        # Convolutional Layer group 1
-        conv1_1 = self.conv_layer(input_layer, 64)
-        conv1_2 = self.conv_layer(conv1_1, 64)
-        pool1 = self.pool_layer(conv1_2)
-
-        # Convolutional Layer group 2
-        conv2_1 = self.conv_layer(pool1, 128)
-        conv2_2 = self.conv_layer(conv2_1, 128)
-        pool2 = self.pool_layer(conv2_2)
-
-        # Convolutional Layer group 3
-        conv3_1 = self.conv_layer(pool2, 256)
-        conv3_2 = self.conv_layer(conv3_1, 256)
-        conv3_3 = self.conv_layer(conv3_2, 256)
-        pool3 = self.pool_layer(conv3_3)
-
-        # Convolutional Layer group 4
-        conv4_1 = self.conv_layer(pool3, 512)
-        conv4_2 = self.conv_layer(conv4_1, 512)
-        conv4_3 = self.conv_layer(conv4_2, 512)
-        pool4 = self.pool_layer(conv4_3)
-
-        # Convolutional Layer group 5
-        conv5_1 = self.conv_layer(pool4, 512)
-        conv5_2 = self.conv_layer(conv5_1, 512)
-        conv5_3 = self.conv_layer(conv5_2, 512)
-        pool5 = self.pool_layer(conv5_3)
+        with tf.name_scope('group_5'):
+            x = self._conv_bn(x, 512, 'conv5_1')
+            x = self._conv_bn(x, 512, 'conv5_2')
+            x = self._conv_bn(x, 512, 'conv5_3')
+            x = self._max_pool(x, 2, 2)
 
         # Dense Layer
-        pool5_flat = tf.reshape(pool5, [-1, 7 * 7 * 512])
-        fc1 = tf.layers.dense(inputs=pool5_flat, units=4096, activation=tf.nn.relu)
-        fc2 = tf.layers.dense(inputs=fc1, units=4096, activation=tf.nn.relu)
-        dropout = tf.layers.dropout(
-            inputs=fc2, rate=0.4, training=is_training)
+        x = tf.layers.flatten(x)
+        x = tf.layers.dense(x, 4096, activation=tf.nn.relu)
+        x = tf.layers.dense(x, 4096, activation=tf.nn.relu)
+        dropout = tf.layers.dropout(x, rate=0.4, training=self._is_training)
 
         # Logits Layer
-        logits = tf.layers.dense(inputs=dropout, units=2)
+        logits = tf.layers.dense(inputs=dropout, units=10)
 
         return logits
 
+    def _conv_bn(self, x, filters, name):
+        x = tf.layers.conv2d(
+            inputs=x,
+            filters=filters,
+            kernel_size=3,
+            strides=1,
+            padding='same',
+            name=name)
 
-if __name__ == '__main__':
-    print('Not runable')
+        tf.logging.info('image after unit %s: %s', x.name, x.get_shape())
+        
+        x = self._batch_norm(x, name='%s_bn' % name)
+
+        return tf.nn.relu(x)
+
+
+def build_model(input_layer, is_training, args, **kwargs):
+    vgg = VGG16(is_training,
+                args.data_format,
+                args.batch_norm_decay,
+                args.batch_norm_epsilon)
+    return vgg.build_model(input_layer)

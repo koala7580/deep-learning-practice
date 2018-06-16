@@ -12,7 +12,9 @@ import os
 import sys
 import argparse
  
+import tushare as ts
 import pandas as pd
+import numpy as np
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import mpl_finance as mpf
@@ -21,8 +23,6 @@ import skimage
 import skimage.io as skimage_io
 import skimage.color as skimage_color
 import skimage.transform as skimage_transform
-
-from download_data import SH50
 
 plt.switch_backend('agg')
 
@@ -85,12 +85,15 @@ def generate_kline_and_label(start_date, buy_date, sell_date, df):
 	sell_day_df = df.loc[df['date'] == sell_date]
 
 	if not buy_day_df.empty and not sell_day_df.empty:
-		buy_day_close = buy_day_df['close'].iloc[0]
-		sell_day_high = sell_day_df['high'].iloc[0]
+		b_h = buy_day_df['high'].iloc[0]
+		b_l = buy_day_df['low'].iloc[0]
+		b_c = buy_day_df['close'].iloc[0]
+		buy_price = (b_h + b_l + b_c) / 3.0
+		sell_price = sell_day_df['high'].iloc[0]
 
 		# NOTE: The label condition could be change here.
-		ratio = (sell_day_high - buy_day_close) / buy_day_close * 100
-		label = (buy_day_close * 1.015 < sell_day_high) and 1 or 0
+		ratio = (sell_price - buy_price) / buy_price * 100
+		label = 1 if buy_price * 1.015 < sell_price else 0
 
 		img_bytes = draw(sub_df)
 		return img_bytes, label, ratio
@@ -125,7 +128,9 @@ def main(args):
 	options = tf.python_io.TFRecordOptions(tf.python_io.TFRecordCompressionType.GZIP)
 	with tf.python_io.TFRecordWriter(train_tfrecords_file_path, options=options) as train_record_writer:
 		with tf.python_io.TFRecordWriter(eval_tfrecords_file_path, options=options) as eval_record_writer:
-			for code in SH50:
+			sh50 = ts.get_sz50s()['code'].values
+
+			for code in sh50:
 				df = read_stock_data(hdf_file_path, code)
 
 				for i in range(len(date_list) - 121):

@@ -1,14 +1,17 @@
-"""Tensorflow estimators for stock prediction.
-"""
+"""Tensorflow estimators for classifying kline images."""
 import argparse
+import functools
+import itertools
 import os
 
 import numpy as np
 import tensorflow as tf
 
-from estimators.alexnet import build_estimator
-from utils import build_model_fn
+# from estimators.alexnet import build_model as alexnet_build_model
+from estimators.resnet import build_model as resnet_build_nodel
+from estimators.vgg import build_model as vgg_build_nodel
 from dataset import input_fn
+from utils import build_model_fn
 
 tf.logging.set_verbosity(tf.logging.INFO)
 
@@ -26,22 +29,28 @@ def main(args):
     """Main Function"""
     # The env variable is on deprecation path, default is set to off.
     os.environ['TF_SYNC_ON_FINISH'] = '0'
-    os.environ['TF_ENABLE_WINOGRAD_NONFUSED'] = '1'
+    os.environ['TF_ENABLE_WINOGRAD_NONFUSED'] = '1'w
 
     # Session configuration.
+    gpu_options = tf.GPUOptions(force_gpu_compatible=True, allow_growth=True)
     session_config = tf.ConfigProto(
         allow_soft_placement=True,
         log_device_placement=args.log_device_placement,
         intra_op_parallelism_threads=args.num_intra_threads,
-        gpu_options=tf.GPUOptions(force_gpu_compatible=True))
+        gpu_options=gpu_options)
 
     run_config = tf.estimator.RunConfig()
     run_config = run_config.replace(model_dir=args.job_dir)
     run_config = run_config.replace(session_config=session_config)
+    run_config = run_config.replace(save_summary_steps=1000)
 
-    estimator = build_estimator(run_config, {
-        'learning_rate': args.learning_rate
-    }, build_model_fn)
+    estimator = tf.estimator.Estimator(
+        model_fn=build_model_fn(resnet_build_nodel, args),
+        config=run_config,
+        params={
+            'input': lambda features: features['image']
+        }
+    )
 
     train_input = lambda: input_fn(args.data_dir, 'train', args.train_batch_size)
     train_spec = tf.estimator.TrainSpec(train_input, max_steps=args.train_steps)
@@ -76,17 +85,27 @@ if __name__ == '__main__':
     parser.add_argument(
         '--train-batch-size',
         type=int,
-        default=16,
+        default=128,
         help='Batch size for training.')
     parser.add_argument(
         '--eval-batch-size',
         type=int,
-        default=16,
+        default=100,
         help='Batch size for validation.')
+    parser.add_argument(
+        '--momentum',
+        type=float,
+        default=0.9,
+        help='Momentum for MomentumOptimizer.')
+    parser.add_argument(
+        '--weight-decay',
+        type=float,
+        default=2e-4,
+        help='Weight decay for convolutions.')
     parser.add_argument(
         '--learning-rate',
         type=float,
-        default=0.01,
+        default=0.1,
         help="""\
         This is the inital learning rate value. The learning rate will decrease
         during training. For more details check the model_fn implementation in
@@ -112,6 +131,34 @@ if __name__ == '__main__':
         action='store_true',
         default=False,
         help='Whether to log device placement.')
+    parser.add_argument(
+        '--batch-norm-decay',
+        type=float,
+        default=0.997,
+        help='Decay for batch norm.')
+    parser.add_argument(
+        '--batch-norm-epsilon',
+        type=float,
+        default=1e-5,
+        help='Epsilon for batch norm.')
+    parser.add_argument(
+        '--num-layers',
+        type=int,
+        default=44,
+        help='The number of layers of the ResNet model.')
+    parser.add_argument(
+        '--data-format',
+        type=str,
+        default='channels_last',
+        help="""\
+        If not set, the data format best for the training device is used.
+        Allowed values: channels_first (NCHW) channels_last (NHWC).\
+        """)
     args = parser.parse_args()
+
+    if (args.num_layers - 2) % 6 != 0:
+        raise ValueError('Invalid --num-layers parameter.')
+    if args.data_format not in ['channels_first', 'channels_last']:
+        raise ValueError('Invalid --data-format parameter.')
 
     main(args)
