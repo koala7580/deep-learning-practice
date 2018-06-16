@@ -27,6 +27,7 @@ import tensorflow as tf
 
 # from estimators.alexnet import build_model as alexnet_build_model
 from estimators.resnet import build_model as resnet_build_nodel
+from estimators.vgg import build_model as vgg_build_nodel
 from cifar10_dataset import input_fn
 from utils import build_model_fn
 
@@ -62,7 +63,7 @@ def main(args):
     run_config = run_config.replace(save_summary_steps=1000)
 
     estimator = tf.estimator.Estimator(
-        model_fn=build_model_fn(resnet_build_nodel, args),
+        model_fn=build_model_fn(vgg_build_nodel, args),
         config=run_config,
         params={
             'input': lambda features: features['image']

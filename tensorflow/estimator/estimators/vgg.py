@@ -8,71 +8,83 @@
 2018-06-10 step=100000 loss = 0.73 accuracy=0.7412
 """
 import tensorflow as tf
-from estimators.utils import build_model_fn
+from estimators.base import BaseEstimator
+
+class VGG16(BaseEstimator):
+    """VGG model."""
+
+    def __init__(self, is_training, data_format, batch_norm_decay, batch_norm_epsilon):
+        """VGG constructor.
+        Args:
+        is_training: if build training or inference model.
+        data_format: the data_format used during computation.
+                    one of 'channels_first' or 'channels_last'.
+        """
+        self._batch_norm_decay = batch_norm_decay
+        self._batch_norm_epsilon = batch_norm_epsilon
+        self._is_training = is_training
+        assert data_format in ('channels_first', 'channels_last')
+        self._data_format = data_format
+
+    def build_model(self, x):
+        with tf.name_scope('group_1'):
+            x = self._conv_bn(x, 64, 'conv1_1')
+            x = self._conv_bn(x, 64, 'conv1_2')
+            x = self._max_pool(x, 2, 2)
+
+        with tf.name_scope('group_2'):
+            x = self._conv_bn(x, 128, 'conv2_1')
+            x = self._conv_bn(x, 128, 'conv2_2')
+            x = self._max_pool(x, 2, 2)
+
+        with tf.name_scope('group_3'):
+            x = self._conv_bn(x, 256, 'conv3_1')
+            x = self._conv_bn(x, 256, 'conv3_2')
+            x = self._conv_bn(x, 256, 'conv3_3')
+            x = self._max_pool(x, 2, 2)
+
+        with tf.name_scope('group_4'):
+            x = self._conv_bn(x, 512, 'conv4_1')
+            x = self._conv_bn(x, 512, 'conv4_2')
+            x = self._conv_bn(x, 512, 'conv4_3')
+            x = self._max_pool(x, 2, 2)
+
+        with tf.name_scope('group_5'):
+            x = self._conv_bn(x, 512, 'conv5_1')
+            x = self._conv_bn(x, 512, 'conv5_2')
+            x = self._conv_bn(x, 512, 'conv5_3')
+            x = self._max_pool(x, 2, 2)
+
+        # Dense Layer
+        x = tf.layers.flatten(x)
+        x = tf.layers.dense(x, 4096, activation=tf.nn.relu)
+        x = tf.layers.dense(x, 4096, activation=tf.nn.relu)
+        dropout = tf.layers.dropout(x, rate=0.4, training=self._is_training)
+
+        # Logits Layer
+        logits = tf.layers.dense(inputs=dropout, units=10)
+
+        return logits
+
+    def _conv_bn(self, x, filters, name):
+        x = tf.layers.conv2d(
+            inputs=x,
+            filters=filters,
+            kernel_size=3,
+            strides=1,
+            padding='same',
+            name=name)
+
+        tf.logging.info('image after unit %s: %s', x.name, x.get_shape())
+        
+        x = self._batch_norm(x, name='%s_bn' % name)
+
+        return tf.nn.relu(x)
 
 
-def conv2d_layer(inputs, filters, **kwargs):
-    return tf.layers.conv2d(
-        inputs=inputs,
-        filters=filters,
-        kernel_size=3,
-        strides=1,
-        padding='same',
-        activation=tf.nn.relu, **kwargs)
-
-
-def max_pool_layer(inputs, **kwargs):
-        return tf.layers.max_pooling2d(inputs, 2, 2, **kwargs)
-
-
-def construct_model(input_layer, is_training, **kwargs):
-    """Construct the model."""
-    # Group 1
-    conv1_1 = conv2d_layer(input_layer, 64, name='conv1_1')
-    conv1_2 = conv2d_layer(conv1_1, 64, name='conv1_2')
-    pool1 = max_pool_layer(conv1_2)
-
-    # Group 2
-    conv2_1 = conv2d_layer(pool1, 128, name='conv2_1')
-    conv2_2 = conv2d_layer(conv2_1, 128, name='conv2_2')
-    pool2 = max_pool_layer(conv2_2)
-
-    # Group 3
-    conv3_1 = conv2d_layer(pool2, 256, name='conv3_1')
-    conv3_2 = conv2d_layer(conv3_1, 256, name='conv3_2')
-    conv3_3 = conv2d_layer(conv3_2, 256, name='conv3_3')
-    pool3 = max_pool_layer(conv3_3)
-
-    # Group 4
-    conv4_1 = conv2d_layer(pool3, 512, name='conv4_1')
-    conv4_2 = conv2d_layer(conv4_1, 512, name='conv4_2')
-    conv4_3 = conv2d_layer(conv4_2, 512, name='conv4_3')
-    pool4 = max_pool_layer(conv4_3)
-
-    # Group 5
-    conv5_1 = conv2d_layer(pool4, 512, name='conv5_1')
-    conv5_2 = conv2d_layer(conv5_1, 512, name='conv5_2')
-    conv5_3 = conv2d_layer(conv5_2, 512, name='conv5_3')
-    pool5 = max_pool_layer(conv5_3)
-
-    # Dense Layer
-    flatten = tf.layers.flatten(pool5)
-    dense1 = tf.layers.dense(flatten, 4096, activation=tf.nn.relu)
-    dense2 = tf.layers.dense(dense1, 4096, activation=tf.nn.relu)
-    dense3 = tf.layers.dense(dense2, 4096, activation=tf.nn.relu)
-    dropout = tf.layers.dropout(dense3, rate=0.4, training=is_training)
-
-    # Logits Layer
-    logits = tf.layers.dense(inputs=dropout, units=10)
-
-    return logits
-
-
-def build_estimator(config, params):
-    """Build an estimator for train and predict.
-    """
-    return tf.estimator.Estimator(
-        model_fn=build_model_fn(construct_model, resize_image=True),
-        config=config,
-        params=params
-    )
+def build_model(input_layer, is_training, args, **kwargs):
+    vgg = VGG16(is_training,
+                args.data_format,
+                args.batch_norm_decay,
+                args.batch_norm_epsilon)
+    return vgg.build_model(input_layer)
