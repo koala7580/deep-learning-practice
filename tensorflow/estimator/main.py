@@ -63,7 +63,7 @@ def main(args):
     run_config = run_config.replace(save_summary_steps=1000)
 
     estimator = tf.estimator.Estimator(
-        model_fn=build_model_fn(vgg_build_nodel, args),
+        model_fn=build_model_fn(resnet_build_nodel, args),
         config=run_config,
         params={
             'input': lambda features: features['image']
@@ -169,7 +169,7 @@ if __name__ == '__main__':
         type=str,
         default='channels_last',
         help="""\
-        If not set, the data format best for the training device is used. 
+        If not set, the data format best for the training device is used.
         Allowed values: channels_first (NCHW) channels_last (NHWC).\
         """)
     args = parser.parse_args()
