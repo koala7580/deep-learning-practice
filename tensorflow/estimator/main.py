@@ -162,7 +162,7 @@ if __name__ == '__main__':
     parser.add_argument(
         '--num-layers',
         type=int,
-        default=44,
+        default=18,
         help='The number of layers of the ResNet model.')
     parser.add_argument(
         '--data-format',
@@ -174,8 +174,6 @@ if __name__ == '__main__':
         """)
     args = parser.parse_args()
 
-    if (args.num_layers - 2) % 6 != 0:
-        raise ValueError('Invalid --num-layers parameter.')
     if args.data_format not in ['channels_first', 'channels_last']:
         raise ValueError('Invalid --data-format parameter.')
 

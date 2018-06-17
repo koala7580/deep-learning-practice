@@ -27,10 +27,31 @@ class ResNet(BaseEstimator):
             batch_norm_decay,
             batch_norm_epsilon)
 
+    def _get_layers(self, num_layers):
+        if num_layers == 18:
+            layers = [1, 1, 1, 1]
+            pad = [0, 1, 0, 1]
+            res_func = self._identity_block
+        elif num_layers == 34:
+            layers = [2, 3, 5, 2]
+            pad = [0, 1, 0, 1]
+            res_func = self._identity_block
+        elif num_layers == 50:
+            layers = [2, 3, 5, 2]
+            pad = None
+            res_func = self._bottleneck_block
+        else:
+            raise ValueError('%d layers is not supportted', num_layers)
+
+        return layers, pad, res_func
+
     def build_model(self, x, num_layers):
         # Add one in case label starts with 1. No impact if label starts with 0.
         num_classes = 10 + 1
         filters = [16, 16, 32, 64]
+
+        layers, pad, res_func = self._get_layers(num_layers)
+        tf.logging.info('ResNet %d layers', num_layers if num_layers > 0 else 18)
 
         input_data_format = self._detect_data_format(x)
         x = self._transform_data_format(x, input_data_format, self._data_format)
@@ -39,38 +60,17 @@ class ResNet(BaseEstimator):
         x = x / 128 - 1.0
 
         # stage 1
-        with tf.name_scope('stage_1') as name_scope:
+        with tf.name_scope('stage') as name_scope:
             x = self._conv_bn(x, 3, 16, 1, padding='same')
             tf.logging.info('image after unit %s: %s', name_scope, x.get_shape())
 
-        # Use basic (non-bottleneck) block and ResNet V1 (post-activation).
-        res_func = self._bottleneck_block
-        # pad = [0, 1, 0, 1]
-        pad = None
-
-        # stage 2
-        with tf.name_scope('stage_2') as name_scope:
-            x = res_func(x, filters[0], 2, pad=pad)
-            x = res_func(x, filters[0], 1)
-            tf.logging.info('image after unit %s: %s', name_scope, x.get_shape())
-
-        # stage 3
-        with tf.name_scope('stage_3') as name_scope:
-            x = res_func(x, filters[1], 2, pad=pad)
-            x = res_func(x, filters[1], 1)
-            tf.logging.info('image after unit %s: %s', name_scope, x.get_shape())
-
-        # stage 4
-        with tf.name_scope('stage_4') as name_scope:
-            x = res_func(x, filters[2], 2, pad=pad)
-            x = res_func(x, filters[2], 1)
-            tf.logging.info('image after unit %s: %s', name_scope, x.get_shape())
-
-        # stage 5
-        with tf.name_scope('stage_5') as name_scope:
-            x = res_func(x, filters[3], 2)
-            x = res_func(x, filters[3], 1)
-            tf.logging.info('image after unit %s: %s', name_scope, x.get_shape())
+        # rest 4 stage
+        for i in range(4):
+            with tf.name_scope('stage') as name_scope:
+                x = res_func(x, filters[i], 2, pad=pad)
+                for _ in range(layers[i]):
+                    x = res_func(x, filters[i], 1)
+                tf.logging.info('image after unit %s: %s', name_scope, x.get_shape())
 
         x = self._global_avg_pool(x)
         x = self._fully_connected(x, num_classes)
@@ -79,7 +79,7 @@ class ResNet(BaseEstimator):
 
     def _identity_block(self, x, filters, strides=1, pad=None):
         """Identity residual block
-        
+
         Arguments:
             x {Tensor} -- input
             in_filters {int} -- number of input filters
@@ -110,7 +110,7 @@ class ResNet(BaseEstimator):
 
     def _bottleneck_block(self, x, filters, strides=1, pad=None):
         """Bottleneck residual block
-        
+
         Arguments:
             x {Tensor} -- input
             in_filters {int} -- number of input filters
