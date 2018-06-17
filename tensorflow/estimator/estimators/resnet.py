@@ -28,148 +28,117 @@ class ResNet(BaseEstimator):
             batch_norm_epsilon)
 
     def build_model(self, x, num_layers):
-        n = (num_layers - 2) // 6
         # Add one in case label starts with 1. No impact if label starts with 0.
         num_classes = 10 + 1
         filters = [16, 16, 32, 64]
-        strides = [1, 2, 2]
 
-        if x.shape[1] == 3 or x.shape[1] == 4:
-            input_data_format = 'channels_first'
-        else:
-            input_data_format = 'channels_last'
-
+        input_data_format = self._detect_data_format(x)
         x = self._transform_data_format(x, input_data_format, self._data_format)
 
         # Image standardization.
         x = x / 128 - 1.0
 
-        x = self._conv(x, 3, 16, 1, name='conv1')
-        x = self._batch_norm(x, name='conv1_bn')
-        x = tf.nn.relu(x)
+        # stage 1
+        with tf.name_scope('stage_1') as name_scope:
+            x = self._conv_bn(x, 3, 16, 1, padding='same')
+            tf.logging.info('image after unit %s: %s', name_scope, x.get_shape())
 
         # Use basic (non-bottleneck) block and ResNet V1 (post-activation).
-        res_func = self._residual_v1
+        res_func = self._bottleneck_block
+        # pad = [0, 1, 0, 1]
+        pad = None
 
-        # 3 stages of block stacking.
-        for i in range(3):
-            with tf.name_scope('stage'):
-                for j in range(n):
-                    if j == 0:
-                        # First block in a stage, filters and strides may change.
-                        x = res_func(x, 3, filters[i], filters[i + 1], strides[i])
-                    else:
-                        # Following blocks in a stage, constant filters and unit stride.
-                        x = res_func(x, 3, filters[i + 1], filters[i + 1], 1)
+        # stage 2
+        with tf.name_scope('stage_2') as name_scope:
+            x = res_func(x, filters[0], 2, pad=pad)
+            x = res_func(x, filters[0], 1)
+            tf.logging.info('image after unit %s: %s', name_scope, x.get_shape())
+
+        # stage 3
+        with tf.name_scope('stage_3') as name_scope:
+            x = res_func(x, filters[1], 2, pad=pad)
+            x = res_func(x, filters[1], 1)
+            tf.logging.info('image after unit %s: %s', name_scope, x.get_shape())
+
+        # stage 4
+        with tf.name_scope('stage_4') as name_scope:
+            x = res_func(x, filters[2], 2, pad=pad)
+            x = res_func(x, filters[2], 1)
+            tf.logging.info('image after unit %s: %s', name_scope, x.get_shape())
+
+        # stage 5
+        with tf.name_scope('stage_5') as name_scope:
+            x = res_func(x, filters[3], 2)
+            x = res_func(x, filters[3], 1)
+            tf.logging.info('image after unit %s: %s', name_scope, x.get_shape())
 
         x = self._global_avg_pool(x)
         x = self._fully_connected(x, num_classes)
 
         return x
 
-    def _residual_v1(self,
-                    x,
-                    kernel_size,
-                    in_filter,
-                    out_filter,
-                    stride,
-                    activate_before_residual=False):
-        """Residual unit with 2 sub layers, using Plan A for shortcut connection."""
+    def _identity_block(self, x, filters, strides=1, pad=None):
+        """Identity residual block
+        
+        Arguments:
+            x {Tensor} -- input
+            in_filters {int} -- number of input filters
+            filters {int} -- number of filters
+            strides {int} -- strides
+            pad {any} -- pad
+        """
+        if self._data_format == 'channels_first':
+            in_filters = x.shape[1]
+        else:
+            in_filters = x.shape[3]
 
-        del activate_before_residual
-        with tf.name_scope('residual_v1') as name_scope:
+        with tf.name_scope('identity_block') as name_scope:
             orig_x = x
 
-            x = self._conv(x, kernel_size, out_filter, stride)
-            x = self._batch_norm(x)
-            x = tf.nn.relu(x)
+            padding = 'valid' if strides > 1 else 'same'
+            x = self._conv_bn(x, 3, filters, strides, pad, padding=padding)
 
-            x = self._conv(x, kernel_size, out_filter, 1)
-            x = self._batch_norm(x)
+            x = self._conv_bn(x, 3, filters, padding='same', activation=None)
 
-            if in_filter != out_filter:
-                orig_x = self._avg_pool(orig_x, stride, stride)
-                pad = (out_filter - in_filter) // 2
-                if self._data_format == 'channels_first':
-                    orig_x = tf.pad(orig_x, [[0, 0], [pad, pad], [0, 0], [0, 0]])
-                else:
-                    orig_x = tf.pad(orig_x, [[0, 0], [0, 0], [0, 0], [pad, pad]])
+            if in_filters != filters or strides > 1:
+                orig_x = self._conv(orig_x, 1, filters, strides, padding='same')
 
             x = tf.nn.relu(tf.add(x, orig_x))
 
             tf.logging.info('image after unit %s: %s', name_scope, x.get_shape())
             return x
 
-    def _residual_v2(self,
-                    x,
-                    in_filter,
-                    out_filter,
-                    stride,
-                    activate_before_residual=False):
-        """Residual unit with 2 sub layers with preactivation, plan A shortcut."""
-
-        with tf.name_scope('residual_v2') as name_scope:
-            x, orig_x = self._activate_before_residual(x, activate_before_residual)
-
-            x = self._conv(x, 3, out_filter, stride)
-
-            x = self._batch_norm(x)
-            x = tf.nn.relu(x)
-            x = self._conv(x, 3, out_filter, [1, 1, 1, 1])
-
-            if in_filter != out_filter:
-                pad = (out_filter - in_filter) // 2
-                orig_x = self._avg_pool(orig_x, stride, stride)
-                if self._data_format == 'channels_first':
-                    orig_x = tf.pad(orig_x, [[0, 0], [pad, pad], [0, 0], [0, 0]])
-                else:
-                    orig_x = tf.pad(orig_x, [[0, 0], [0, 0], [0, 0], [pad, pad]])
-
-            x = tf.add(x, orig_x)
-
-            tf.logging.info('image after unit %s: %s', name_scope, x.get_shape())
-            return x
-
-    def _bottleneck_residual_v2(self,
-                                x,
-                                in_filter,
-                                out_filter,
-                                stride,
-                                activate_before_residual=False):
-        """Bottleneck residual unit with 3 sub layers, plan B shortcut."""
+    def _bottleneck_block(self, x, filters, strides=1, pad=None):
+        """Bottleneck residual block
+        
+        Arguments:
+            x {Tensor} -- input
+            in_filters {int} -- number of input filters
+            filters {int} -- number of filters
+            strides {int} -- strides
+            pad {any} -- pad
+        """
+        if self._data_format == 'channels_first':
+            in_filters = x.shape[1]
+        else:
+            in_filters = x.shape[3]
 
         with tf.name_scope('bottle_residual_v2') as name_scope:
-            x, orig_x = self._activate_before_residual(x, activate_before_residual)
+            orig_x = x
 
-            x = self._conv(x, 1, out_filter // 4, stride, is_atrous=True)
-            x = self._batch_norm(x)
-            x = tf.nn.relu(x)
+            padding = 'valid' if strides > 1 else 'same'
+            x = self._conv_bn(x, 1, filters // 4, strides, pad, padding=padding)
+            x = self._conv_bn(x, 3, filters // 4, 1, padding='same')
 
-            # pad when stride isn't unit
-            x = self._conv(x, 3, out_filter // 4, 1, is_atrous=True)
-            x = self._batch_norm(x)
-            x = tf.nn.relu(x)
+            x = self._conv_bn(x, 1, filters // 1, 1, padding='same')
 
-            x = self._conv(x, 1, out_filter, 1, is_atrous=True)
-
-            if in_filter != out_filter:
-                orig_x = self._conv(orig_x, 1, out_filter, stride, is_atrous=True)
+            if in_filters != filters or strides > 1:
+                orig_x = self._conv(orig_x, 1, filters, strides, pad, padding=padding)
             x = tf.add(x, orig_x)
 
             tf.logging.info('image after unit %s: %s', name_scope, x.get_shape())
             return x
 
-    def _activate_before_residual(self, x, activate_before_residual=False):
-        if activate_before_residual:
-            x = self._batch_norm(x)
-            x = tf.nn.relu(x)
-            orig_x = x
-        else:
-            orig_x = x
-            x = self._batch_norm(x)
-            x = tf.nn.relu(x)
-
-        return x, orig_x
 
 def build_model(input_layer, is_training, args, **kwargs):
     resnet = ResNet(is_training,
