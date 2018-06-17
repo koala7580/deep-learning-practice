@@ -21,7 +21,11 @@ class ResNet(BaseEstimator):
         data_format: the data_format used during computation.
                     one of 'channels_first' or 'channels_last'.
         """
-        super(ResNet, self).__init__(is_training, data_format, batch_norm_decay, batch_norm_epsilon)
+        super(ResNet, self).__init__(
+            is_training,
+            data_format,
+            batch_norm_decay,
+            batch_norm_epsilon)
 
     def build_model(self, x, num_layers):
         n = (num_layers - 2) // 6
@@ -35,7 +39,7 @@ class ResNet(BaseEstimator):
         else:
             input_data_format = 'channels_last'
 
-        x = self._transpose_channels(x, input_data_format, self._data_format)
+        x = self._transform_data_format(x, input_data_format, self._data_format)
 
         # Image standardization.
         x = x / 128 - 1.0

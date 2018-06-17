@@ -19,7 +19,7 @@ class BaseEstimator(object):
         assert data_format in ('channels_first', 'channels_last')
         self._data_format = data_format
 
-    def _transpose_channels(self, x, from_data_format, to_data_format):
+    def _transform_data_format(self, x, from_data_format, to_data_format):
         assert from_data_format in ['channels_first', 'channels_last']
         assert to_data_format in ['channels_first', 'channels_last']
 

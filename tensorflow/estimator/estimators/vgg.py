@@ -27,6 +27,13 @@ class VGG16(BaseEstimator):
         self._data_format = data_format
 
     def build_model(self, x):
+        if x.shape[1] == 3 or x.shape[1] == 4:
+            input_data_format = 'channels_first'
+        else:
+            input_data_format = 'channels_last'
+
+        x = self._transform_data_format(x, input_data_format, self._data_format)
+
         with tf.name_scope('group_1'):
             x = self._conv_bn(x, 64, 'conv1_1')
             x = self._conv_bn(x, 64, 'conv1_2')
