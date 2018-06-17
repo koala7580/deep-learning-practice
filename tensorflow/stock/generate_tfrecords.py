@@ -11,7 +11,7 @@ import io
 import os
 import sys
 import argparse
- 
+
 import tushare as ts
 import pandas as pd
 import numpy as np
@@ -26,6 +26,7 @@ import skimage.transform as skimage_transform
 
 plt.switch_backend('agg')
 
+sh50 = ts.get_sz50s()['code'].values
 
 def read_stock_data(file_path, code):
 	return pd.read_hdf(file_path, 'SH' + code)
@@ -34,7 +35,7 @@ def read_stock_data(file_path, code):
 def collect_date_list(file_path):
 	dl_set = set()
 
-	for code in SH50:
+	for code in sh50:
 		df = read_stock_data(file_path, code)
 		dl_set |= set(df['date'])
 
@@ -128,7 +129,6 @@ def main(args):
 	options = tf.python_io.TFRecordOptions(tf.python_io.TFRecordCompressionType.GZIP)
 	with tf.python_io.TFRecordWriter(train_tfrecords_file_path, options=options) as train_record_writer:
 		with tf.python_io.TFRecordWriter(eval_tfrecords_file_path, options=options) as eval_record_writer:
-			sh50 = ts.get_sz50s()['code'].values
 
 			for code in sh50:
 				df = read_stock_data(hdf_file_path, code)
