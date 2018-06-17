@@ -60,9 +60,9 @@ class DataSet:
 
         # Potentially shuffle records.
         min_queue_examples = 0
-        if self.subset == 'train':
-            min_queue_examples = int(
-                DataSet.num_examples_per_epoch(self.subset) * 0.4)
+        # if self.subset == 'train':
+        #     min_queue_examples = int(
+        #         DataSet.num_examples_per_epoch(self.subset) * 0.4)
 
         # Ensure that the capacity is sufficiently large to provide good random
         # shuffling.
