@@ -27,33 +27,16 @@ class VGG16(BaseEstimator):
         self._data_format = data_format
 
     def build_model(self, x):
-        with tf.name_scope('group_1'):
-            x = self._conv_bn(x, 64, 'conv1_1')
-            x = self._conv_bn(x, 64, 'conv1_2')
-            x = self._max_pool(x, 2, 2)
+        filters = [32, 64, 128, 256, 256]
+        layers = [2, 2, 3, 3, 3]
 
-        with tf.name_scope('group_2'):
-            x = self._conv_bn(x, 128, 'conv2_1')
-            x = self._conv_bn(x, 128, 'conv2_2')
-            x = self._max_pool(x, 2, 2)
+        for i in range(5):
+            with tf.name_scope('group') as name_scope:
+                for j in range(layers[i]):
+                    x = self._conv_bn(x, filters[i], 'conv%d_%d' % (i, j))
+                x = self._max_pool(x, 2, 2)
 
-        with tf.name_scope('group_3'):
-            x = self._conv_bn(x, 256, 'conv3_1')
-            x = self._conv_bn(x, 256, 'conv3_2')
-            x = self._conv_bn(x, 256, 'conv3_3')
-            x = self._max_pool(x, 2, 2)
-
-        with tf.name_scope('group_4'):
-            x = self._conv_bn(x, 512, 'conv4_1')
-            x = self._conv_bn(x, 512, 'conv4_2')
-            x = self._conv_bn(x, 512, 'conv4_3')
-            x = self._max_pool(x, 2, 2)
-
-        with tf.name_scope('group_5'):
-            x = self._conv_bn(x, 512, 'conv5_1')
-            x = self._conv_bn(x, 512, 'conv5_2')
-            x = self._conv_bn(x, 512, 'conv5_3')
-            x = self._max_pool(x, 2, 2)
+                tf.logging.info('image after unit %s: %s', name_scope, x.get_shape())
 
         # Dense Layer
         x = tf.layers.flatten(x)
@@ -75,9 +58,7 @@ class VGG16(BaseEstimator):
             padding='same',
             name=name)
 
-        tf.logging.info('image after unit %s: %s', x.name, x.get_shape())
-        
-        x = self._batch_norm(x, name='%s_bn' % name)
+        x = self._batch_norm(x)
 
         return tf.nn.relu(x)
 

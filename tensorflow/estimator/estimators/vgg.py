@@ -27,45 +27,25 @@ class VGG16(BaseEstimator):
         self._data_format = data_format
 
     def build_model(self, x):
-        if x.shape[1] == 3 or x.shape[1] == 4:
-            input_data_format = 'channels_first'
-        else:
-            input_data_format = 'channels_last'
-
+        input_data_format = self._detect_data_format(x)
         x = self._transform_data_format(x, input_data_format, self._data_format)
 
-        with tf.name_scope('group_1'):
-            x = self._conv_bn(x, 64, 'conv1_1')
-            x = self._conv_bn(x, 64, 'conv1_2')
-            x = self._max_pool(x, 2, 2)
+        filters = [32, 64, 128, 256, 256]
+        layers = [2, 2, 3, 3, 3]
 
-        with tf.name_scope('group_2'):
-            x = self._conv_bn(x, 128, 'conv2_1')
-            x = self._conv_bn(x, 128, 'conv2_2')
-            x = self._max_pool(x, 2, 2)
 
-        with tf.name_scope('group_3'):
-            x = self._conv_bn(x, 256, 'conv3_1')
-            x = self._conv_bn(x, 256, 'conv3_2')
-            x = self._conv_bn(x, 256, 'conv3_3')
-            x = self._max_pool(x, 2, 2)
+        for i in range(5):
+            with tf.name_scope('stage') as name_scope:
+                for j in range(layers[i]):
+                    x = self._conv_bn(x, filters[i], 'conv%d_%d' % (i, j))
+                x = self._max_pool(x, 2, 2)
 
-        with tf.name_scope('group_4'):
-            x = self._conv_bn(x, 512, 'conv4_1')
-            x = self._conv_bn(x, 512, 'conv4_2')
-            x = self._conv_bn(x, 512, 'conv4_3')
-            x = self._max_pool(x, 2, 2)
-
-        with tf.name_scope('group_5'):
-            x = self._conv_bn(x, 512, 'conv5_1')
-            x = self._conv_bn(x, 512, 'conv5_2')
-            x = self._conv_bn(x, 512, 'conv5_3')
-            x = self._max_pool(x, 2, 2)
+                tf.logging.info('image after unit %s: %s', name_scope, x.get_shape())
 
         # Dense Layer
         x = tf.layers.flatten(x)
-        x = tf.layers.dense(x, 4096, activation=tf.nn.relu)
-        x = tf.layers.dense(x, 4096, activation=tf.nn.relu)
+        x = tf.layers.dense(x, 2048, activation=tf.nn.relu)
+        x = tf.layers.dense(x, 2048, activation=tf.nn.relu)
         dropout = tf.layers.dropout(x, rate=0.4, training=self._is_training)
 
         # Logits Layer
@@ -82,9 +62,7 @@ class VGG16(BaseEstimator):
             padding='same',
             name=name)
 
-        tf.logging.info('image after unit %s: %s', x.name, x.get_shape())
-        
-        x = self._batch_norm(x, name='%s_bn' % name)
+        x = self._batch_norm(x)
 
         return tf.nn.relu(x)
 

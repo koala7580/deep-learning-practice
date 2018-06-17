@@ -63,7 +63,8 @@ def main(args):
     run_config = run_config.replace(save_summary_steps=1000)
 
     estimator = tf.estimator.Estimator(
-        model_fn=build_model_fn(resnet_build_nodel, args),
+        # model_fn=build_model_fn(resnet_build_nodel, args),
+        model_fn=build_model_fn(vgg_build_nodel, args),
         config=run_config,
         params={
             'input': lambda features: features['image']
