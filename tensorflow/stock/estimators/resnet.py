@@ -72,10 +72,10 @@ class ResNet(BaseEstimator):
                     x = res_func(x, filters[i], 1)
                 tf.logging.info('image after unit %s: %s', name_scope, x.get_shape())
 
-        # x = self._global_avg_pool(x)
-        x = tf.layers.flatten(x)
-        x = self._fully_connected(x, 1024)
-        x = tf.layers.dropout(x)
+        x = self._global_avg_pool(x)
+        # x = tf.layers.flatten(x)
+        # x = self._fully_connected(x, 1024)
+        # x = tf.layers.dropout(x)
         x = self._fully_connected(x, num_classes)
 
         return x
