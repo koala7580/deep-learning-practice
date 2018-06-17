@@ -27,11 +27,15 @@ class VGG16(BaseEstimator):
         self._data_format = data_format
 
     def build_model(self, x):
+        input_data_format = self._detect_data_format(x)
+        x = self._transform_data_format(x, input_data_format, self._data_format)
+
         filters = [32, 64, 128, 256, 256]
         layers = [2, 2, 3, 3, 3]
 
+
         for i in range(5):
-            with tf.name_scope('group') as name_scope:
+            with tf.name_scope('stage') as name_scope:
                 for j in range(layers[i]):
                     x = self._conv_bn(x, filters[i], 'conv%d_%d' % (i, j))
                 x = self._max_pool(x, 2, 2)
@@ -40,8 +44,8 @@ class VGG16(BaseEstimator):
 
         # Dense Layer
         x = tf.layers.flatten(x)
-        x = tf.layers.dense(x, 4096, activation=tf.nn.relu)
-        x = tf.layers.dense(x, 4096, activation=tf.nn.relu)
+        x = tf.layers.dense(x, 2048, activation=tf.nn.relu)
+        x = tf.layers.dense(x, 2048, activation=tf.nn.relu)
         dropout = tf.layers.dropout(x, rate=0.4, training=self._is_training)
 
         # Logits Layer

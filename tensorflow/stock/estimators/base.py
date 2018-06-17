@@ -19,7 +19,15 @@ class BaseEstimator(object):
         assert data_format in ('channels_first', 'channels_last')
         self._data_format = data_format
 
-    def _transpose_channels(self, x, from_data_format, to_data_format):
+    def _detect_data_format(self, x):
+        if x.shape[1] == 3 or x.shape[1] == 4:
+            return 'channels_first'
+        elif x.shape[3] == 3 or x.shape[3] == 4:
+            return 'channels_last'
+        else:
+            raise ValueError('unknown data format with shape: %s', x.ge_shape())
+
+    def _transform_data_format(self, x, from_data_format, to_data_format):
         assert from_data_format in ['channels_first', 'channels_last']
         assert to_data_format in ['channels_first', 'channels_last']
 
@@ -33,32 +41,47 @@ class BaseEstimator(object):
 
         return x
 
+    def _conv_bn(self, x, kernel_size, filters, strides=(1,1), pad=None, activation=tf.nn.relu, **kwargs):
+        x = self._conv(x, kernel_size, filters, strides, pad, **kwargs)
+        x = self._batch_norm(x)
+        if activation:
+            x = activation(x)
 
-    def _conv(self, x, kernel_size, filters, strides, is_atrous=False, name=None):
-        """Convolution."""
+        return x
 
-        padding = 'SAME'
-        if not is_atrous and strides > 1:
-            pad = kernel_size - 1
-            pad_beg = pad // 2
-            pad_end = pad - pad_beg
+    def _pad(self, x, pad):
+        if type(pad) == int:
+            return self._pad(x, ((pad, pad), (pad, pad)))
+
+        if len(pad) == 4:
+            return self._pad(x, ((pad[0], pad[1]), (pad[2], pad[3])))
+
+        if len(pad) == 2:
+            pad_h, pad_w = pad[0], pad[1]
+            if type(pad_h) == int and type(pad_w) == int:
+                return self._pad(x, ((pad_h, pad_h), (pad_w, pad_w)))
+
             if self._data_format == 'channels_first':
-                x = tf.pad(x, [[0, 0], [0, 0], [pad_beg, pad_end], [pad_beg, pad_end]])
+                x = tf.pad(x, [[0, 0], [0, 0], [pad_h[0], pad_h[1]], [pad_w[0], pad_w[1]]])
             else:
-                x = tf.pad(x, [[0, 0], [pad_beg, pad_end], [pad_beg, pad_end], [0, 0]])
-            padding = 'VALID'
+                x = tf.pad(x, [[0, 0], [pad_h[0], pad_h[1]], [pad_w[0], pad_w[1]], [0, 0]])
+
+        return x
+
+    def _conv(self, x, kernel_size, filters, strides=(1,1), pad=None, **kwargs):
+        """Convolution."""
+        if pad:
+            x = self._pad(x, pad)
 
         return tf.layers.conv2d(
             inputs=x,
             kernel_size=kernel_size,
             filters=filters,
             strides=strides,
-            padding=padding,
             use_bias=False,
-            data_format=self._data_format,
-            name=name)
+            data_format=self._data_format, **kwargs)
 
-    def _batch_norm(self, x, name=None):
+    def _batch_norm(self, x):
 
         return tf.layers.batch_normalization(
             x,
@@ -67,8 +90,7 @@ class BaseEstimator(object):
             scale=True,
             epsilon=self._batch_norm_epsilon,
             training=self._is_training,
-            fused=True,
-            name=name)
+            fused=True)
 
     def _fully_connected(self, x, out_dim):
         with tf.name_scope('fully_connected') as name_scope:

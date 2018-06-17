@@ -47,7 +47,7 @@ class ResNet(BaseEstimator):
 
     def build_model(self, x, num_layers):
         # Add one in case label starts with 1. No impact if label starts with 0.
-        num_classes = 10 + 1
+        num_classes = 2 + 1
         filters = [16, 16, 32, 64]
 
         layers, pad, res_func = self._get_layers(num_layers)
@@ -61,7 +61,7 @@ class ResNet(BaseEstimator):
 
         # stage 1
         with tf.name_scope('stage') as name_scope:
-            x = self._conv_bn(x, 3, 16, 1, padding='same')
+            x = self._conv_bn(x, 7, 64, 2, pad=(2, 3, 2, 3))
             tf.logging.info('image after unit %s: %s', name_scope, x.get_shape())
 
         # rest 4 stage
@@ -72,7 +72,10 @@ class ResNet(BaseEstimator):
                     x = res_func(x, filters[i], 1)
                 tf.logging.info('image after unit %s: %s', name_scope, x.get_shape())
 
-        x = self._global_avg_pool(x)
+        # x = self._global_avg_pool(x)
+        x = tf.layers.flatten(x)
+        x = self._fully_connected(x, 1024)
+        x = tf.layers.dropout(x)
         x = self._fully_connected(x, num_classes)
 
         return x

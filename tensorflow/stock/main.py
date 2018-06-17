@@ -1,22 +1,4 @@
-# Copyright 2017 The TensorFlow Authors. All Rights Reserved.
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-# ==============================================================================
-"""Tensorflow estimators for classifying images from CIFAR-10 dataset.
-Support single-host training with one or multiple devices.
-This notebook explained the usage of train_and_evaluate:
-https://github.com/amygdala/code-snippets/blob/master/ml/census_train_and_eval/using_tf.estimator.train_and_evaluate.ipynb
-"""
+"""Tensorflow estimators for classifying kline images."""
 import argparse
 import functools
 import itertools
@@ -28,7 +10,7 @@ import tensorflow as tf
 # from estimators.alexnet import build_model as alexnet_build_model
 from estimators.resnet import build_model as resnet_build_nodel
 from estimators.vgg import build_model as vgg_build_nodel
-from cifar10_dataset import input_fn
+from dataset import input_fn
 from utils import build_model_fn
 
 tf.logging.set_verbosity(tf.logging.INFO)
@@ -64,6 +46,7 @@ def main(args):
 
     estimator = tf.estimator.Estimator(
         model_fn=build_model_fn(resnet_build_nodel, args),
+        # model_fn=build_model_fn(vgg_build_nodel, args),
         config=run_config,
         params={
             'input': lambda features: features['image']
@@ -73,12 +56,12 @@ def main(args):
     train_input = lambda: input_fn(args.data_dir, 'train', args.train_batch_size)
     train_spec = tf.estimator.TrainSpec(train_input, max_steps=args.train_steps)
 
-    eval_input = lambda: input_fn(args.data_dir, 'validation', args.eval_batch_size)
-    exporter = tf.estimator.FinalExporter('cifar10', json_serving_input_fn)
+    eval_input = lambda: input_fn(args.data_dir, 'eval', args.eval_batch_size)
+    exporter = tf.estimator.FinalExporter('stock', json_serving_input_fn)
     eval_spec = tf.estimator.EvalSpec(eval_input,
                                       steps=100,
                                       exporters=[exporter],
-                                      name='cifar10-eval')
+                                      name='stock-eval')
 
     tf.estimator.train_and_evaluate(estimator, train_spec, eval_spec)
 
