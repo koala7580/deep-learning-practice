@@ -47,8 +47,8 @@ class ResNet(BaseEstimator):
 
     def build_model(self, x, num_layers):
         # Add one in case label starts with 1. No impact if label starts with 0.
-        num_classes = 2 + 1
-        filters = [16, 16, 32, 64]
+        num_classes = 2
+        filters = [64, 128, 256, 512]
 
         layers, pad, res_func = self._get_layers(num_layers)
         tf.logging.info('ResNet %d layers', num_layers if num_layers > 0 else 18)
