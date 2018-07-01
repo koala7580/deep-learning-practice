@@ -56,11 +56,13 @@ class VGG16(BaseModel):
 
     def _conv(self, x, filters, name):
         x = tf.layers.conv2d(x, filters, 3, padding='same', activation=tf.nn.relu, name=name)
-        return self._swap_out(x)
+        self._swap_out_ts.append(x)
+        return x
 
     def _max_pool(self, x):
         x = tf.layers.max_pooling2d(x, 2, 2)
-        return self._swap_out(x)
+        self._swap_out_ts.append(x)
+        return x
 
 
 def build_model(input_layer, is_training, args, **kwargs):
@@ -69,4 +71,4 @@ def build_model(input_layer, is_training, args, **kwargs):
                 args.data_format,
                 args.batch_norm_decay,
                 args.batch_norm_epsilon)
-    return vgg.build_model(input_layer)
+    return vgg.build_model(input_layer), vgg

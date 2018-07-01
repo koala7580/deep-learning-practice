@@ -20,7 +20,7 @@ def build_model_fn(build_model, build_input_layer, args):
 
         tf.summary.image('image', input_layer)
 
-        logits = build_model(input_layer, mode == tf.estimator.ModeKeys.TRAIN, params=params, args=args)
+        logits, instance = build_model(input_layer, mode == tf.estimator.ModeKeys.TRAIN, params=params, args=args)
 
         predictions = {
             # Generate predictions (for PREDICT and EVAL mode)
@@ -50,6 +50,9 @@ def build_model_fn(build_model, build_input_layer, args):
             train_op = optimizer.minimize(
                 loss=loss,
                 global_step=tf.train.get_global_step())
+            
+            instance.remap_gradients()
+
             return tf.estimator.EstimatorSpec(mode=mode, loss=loss, train_op=train_op)
 
         # Add evaluation metrics (for EVAL mode)
