@@ -20,7 +20,7 @@ class VGG16(BaseModel):
         data_format: the data_format used during computation.
                     one of 'channels_first' or 'channels_last'.
         """
-        super(VGG16, self).__init__(batch_size)
+        super(VGG16, self).__init__()
 
         self._batch_norm_decay = batch_norm_decay
         self._batch_norm_epsilon = batch_norm_epsilon
