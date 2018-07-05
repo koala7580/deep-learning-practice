@@ -33,3 +33,7 @@ Install tensorflow
 
     $ conda install pytorch torchvision -c pytorch 
 
+or for linux with CUDA 9.0 which is used by tensorflow:
+
+    $ conda install pytorch torchvision cuda90 -c pytorch
+
