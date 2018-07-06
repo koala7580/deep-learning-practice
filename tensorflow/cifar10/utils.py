@@ -33,16 +33,16 @@ def build_model_fn(args, build_model):
 
         # Calculate Loss (for both TRAIN and EVAL modes)
         loss = tf.losses.sparse_softmax_cross_entropy(labels=labels, logits=logits)
-        
+
         # Configure the Training Op (for TRAIN mode)
         if mode == tf.estimator.ModeKeys.TRAIN:
             lr = tf.train.exponential_decay(
                     args.learning_rate,
                     tf.train.get_global_step(),
-                    10000,
+                    30000,
                     0.1)
-            optimizer = tf.train.GradientDescentOptimizer(lr)
-            # optimizer = tf.train.AdamOptimizer(FLAGS.learning_rate)
+            # optimizer = tf.train.GradientDescentOptimizer(lr)
+            optimizer = tf.train.AdamOptimizer(args.learning_rate)
 
             train_op = optimizer.minimize(
                 loss=loss,

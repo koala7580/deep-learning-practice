@@ -22,7 +22,7 @@ from resnet_model import Model
 
 
 def build_model(inputs, args, mode, params):
-    resnet_size = 32
+    resnet_size = 20
     num_blocks = (resnet_size - 2) // 6
     model = Model(
         resnet_size=resnet_size,
@@ -36,7 +36,7 @@ def build_model(inputs, args, mode, params):
         block_sizes=[num_blocks] * 3,
         block_strides=[1, 2, 2],
         final_size=64,
-        resnet_version=1,
+        resnet_version=2,
         data_format='channels_last',
         dtype=tf.float32
     )

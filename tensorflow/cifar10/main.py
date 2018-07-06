@@ -1,4 +1,4 @@
-"""example for tf.estimator.train_and_evaluate
+"""Models for CIFAR-10 dataset.
 """
 from __future__ import division
 from __future__ import absolute_import
@@ -14,7 +14,8 @@ from utils import build_model_fn
 
 # from alexnet import build_model
 # from vgg import build_model_16 as build_model
-from resnet import build_model
+# from resnet import build_model
+from xception import build_model
 
 tf.logging.set_verbosity(tf.logging.INFO)
 
@@ -40,7 +41,9 @@ def main(args):
 
     train_spec = tf.estimator.TrainSpec(input_fn=dataset.train_input_fn(args.train_batch_size),
                                         max_steps=args.train_steps)
-    eval_spec = tf.estimator.EvalSpec(input_fn=dataset.eval_input_fn(args.eval_batch_size), start_delay_secs=60)
+    eval_spec = tf.estimator.EvalSpec(input_fn=dataset.eval_input_fn(args.eval_batch_size),
+                                      start_delay_secs=60,
+                                      throttle_secs=60)
 
     tf.estimator.train_and_evaluate(estimator, train_spec, eval_spec)
 
