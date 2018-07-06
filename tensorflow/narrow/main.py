@@ -13,7 +13,8 @@ from cifar10_dataset import DataSet
 from utils import build_model_fn
 
 # from alexnet import build_model
-from vgg import build_model_16 as build_model
+# from vgg import build_model_16 as build_model
+from resnet import build_model
 
 tf.logging.set_verbosity(tf.logging.INFO)
 

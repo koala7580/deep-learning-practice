@@ -11,7 +11,7 @@ import tensorflow as tf
 def conv2d(x, filters, kernel_size, strides, **kwargs):
     return tf.layers.conv2d(x, filters, kernel_size, strides, padding="same", activation=tf.nn.elu, **kwargs)
 
-def build_model(inputs, args, params):
+def build_model(inputs, args, mode, params):
     scale_factor = 4
 
     with tf.name_scope('block_1'):

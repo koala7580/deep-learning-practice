@@ -16,7 +16,7 @@ def build_model_fn(args, build_model):
         inputs = features['image']
         tf.summary.image('input_image', inputs)
 
-        logits = build_model(inputs, args, params)
+        logits = build_model(inputs, args, mode, params)
 
         predictions = {
             # Generate predictions (for PREDICT and EVAL mode)
