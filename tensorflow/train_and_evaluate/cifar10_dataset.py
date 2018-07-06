@@ -25,7 +25,7 @@ class DataSet(object):
         return lambda: self._input_fn('eval', batch_size)
 
     def _input_fn(self, subset, batch_size, use_distortion_for_training=False):
-         with tf.device('/cpu:0'):
+        with tf.device('/cpu:0'):
             self._use_distortion = subset == 'train' and use_distortion_for_training
             image_batch, label_batch = self._make_batch(subset, batch_size)
             return { 'image': image_batch }, label_batch
@@ -73,6 +73,8 @@ class DataSet(object):
 
         # Custom preprocessing.
         image = self._preprocess(image)
+
+        image = tf.image.per_image_standardization(image)
 
         return image, label
 
