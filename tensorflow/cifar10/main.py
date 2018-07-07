@@ -15,7 +15,8 @@ from utils import build_model_fn
 # from alexnet import build_model
 # from vgg import build_model_16 as build_model
 # from resnet import build_model
-from xception import build_model
+# from xception import build_model
+from mobilenet_v1 import build_model
 
 tf.logging.set_verbosity(tf.logging.INFO)
 

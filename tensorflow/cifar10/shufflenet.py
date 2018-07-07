@@ -1,5 +1,5 @@
-"""Xception model
-论文地址：https://arxiv.org/pdf/1610.02357.pdf
+"""ShuffleNet model
+论文地址：https://arxiv.org/pdf/1707.01083.pdf
 
 结果：accuracy:
 """
@@ -7,7 +7,7 @@ from __future__ import division
 
 import tensorflow as tf
 
-_BATCH_NORM_DECAY = 0.997
+_BATCH_NORM_DECAY = 0.995
 _BATCH_NORM_EPSILON = 1e-5
 
 class Builder(object):
