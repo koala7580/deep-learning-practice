@@ -16,7 +16,7 @@ def block(x, filters, n_layers, name):
         x = conv2d(x, filters, name='%s/conv_%d' % (name, i + 1))
     return tf.layers.max_pooling2d(x, 2, 2, name='%s/pool' % name)
 
-def build_model_16(inputs, args, mode, params):
+def build_model(inputs, args, mode, params):
     scale_factor = 4
 
     x = block(inputs, 64 // scale_factor, 2, 'block1')

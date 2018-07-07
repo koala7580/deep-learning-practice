@@ -3,7 +3,7 @@
 import tensorflow as tf
 
 
-def build_model_fn(build_model, args):
+def build_model_fn(args, build_model):
     def _model_fn(features, labels, mode, params):
         """Estimator model function.
 
@@ -13,9 +13,10 @@ def build_model_fn(build_model, args):
             mode {tf.estimator.ModeKeys} -- mode key
             params {any} -- model params
         """
-        input_layer = params['input'](features)
+        inputs = features['image']
+        tf.summary.image('input_image', inputs)
 
-        logits = build_model(input_layer, mode == tf.estimator.ModeKeys.TRAIN, params=params, args=args)
+        logits = build_model(inputs, args, mode, params)
 
         predictions = {
             # Generate predictions (for PREDICT and EVAL mode)
@@ -25,21 +26,18 @@ def build_model_fn(build_model, args):
             "probabilities": tf.nn.softmax(logits, name="softmax_tensor")
         }
 
-        export_outputs = {
-            'predict_output': tf.estimator.export.PredictOutput(predictions)
-        }
         if mode == tf.estimator.ModeKeys.PREDICT:
             return tf.estimator.EstimatorSpec(
                 mode=mode,
-                predictions=predictions,
-                export_outputs=export_outputs)
+                predictions=predictions)
 
         # Calculate Loss (for both TRAIN and EVAL modes)
         loss = tf.losses.sparse_softmax_cross_entropy(labels=labels, logits=logits)
-        
+        l2_loss = tf.losses.get_regularization_loss()
+        loss += l2_loss
+
         # Configure the Training Op (for TRAIN mode)
         if mode == tf.estimator.ModeKeys.TRAIN:
-            # optimizer = tf.train.GradientDescentOptimizer(learning_rate=params['learning_rate'])
             optimizer = tf.train.AdamOptimizer(args.learning_rate)
 
             train_op = optimizer.minimize(

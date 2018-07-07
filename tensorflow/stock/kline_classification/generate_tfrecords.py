@@ -85,6 +85,8 @@ def generate_kline_and_label(start_date, buy_date, sell_date, df):
 	buy_day_df = df.loc[df['date'] == buy_date]
 	sell_day_df = df.loc[df['date'] == sell_date]
 
+	img_bytes = draw(sub_df)
+
 	if not buy_day_df.empty and not sell_day_df.empty:
 		b_h = buy_day_df['high'].iloc[0]
 		b_l = buy_day_df['low'].iloc[0]
@@ -96,14 +98,9 @@ def generate_kline_and_label(start_date, buy_date, sell_date, df):
 		ratio = (sell_price - buy_price) / buy_price * 100
 		label = 1 if buy_price * 1.015 < sell_price else 0
 
-		img_bytes = draw(sub_df)
 		return img_bytes, label, ratio
 	else:
-		if buy_day_df.empty:
-			raise ValueError('Buy day has no data.')
-
-		if sell_day_df.empty:
-			raise ValueError('Sell day has no data')
+		return img_bytes, 2, float('nan')
 
 
 def main(args):
@@ -140,7 +137,8 @@ def main(args):
 
 					try:
 						img_bytes, label, ratio = generate_kline_and_label(start_date, buy_date, sell_date, df)
-					except ValueError:
+					except ValueError as e:
+						print(e)
 						continue
 
 					example = make_example(img_bytes, label, buy_date, sell_date, code)
