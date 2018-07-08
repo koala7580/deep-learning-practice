@@ -21,7 +21,7 @@ parser.add_argument('--log-interval', type=int, default=10, metavar='N',
 args = parser.parse_args()
 
 
-env = Environment('600000', '2017-01-01', datetime.today().strftime('Y-m-d'))
+env = Environment('600961', '2017-01-01', datetime.today().strftime('%Y-%m-%d'))
 torch.manual_seed(args.seed)
 eps = np.finfo(np.float32).eps.item()
 
@@ -30,8 +30,8 @@ class Policy(nn.Module):
     def __init__(self):
         super(Policy, self).__init__()
         # states: open, high, low, close, volume
-        # actions: 0 wait, 1 buy, 2 sell
-        self.fc1 = nn.Linear(6, 128)
+        # actions: 0 buy, 1 sell, 2 wait
+        self.fc1 = nn.Linear(5, 128)
         self.fc2 = nn.Linear(128, 128)
         self.fc3 = nn.Linear(128, 3)
 
@@ -75,6 +75,7 @@ def finish_episode():
     rewards = (rewards - rewards.mean()) / (rewards.std() + eps)
     for log_prob, reward in zip(policy.saved_log_probs, rewards):
         policy_loss.append(-log_prob * reward)
+
     optimizer.zero_grad()
     policy_loss = torch.cat(policy_loss).sum()
     policy_loss.backward()
@@ -84,7 +85,7 @@ def finish_episode():
 
 
 def main():
-    running_reward = 10
+    running_reward = 0
     for i_episode in count(1):
         state = env.reset()
         for t in range(10000):  # Don't infinite loop while learning
@@ -94,13 +95,13 @@ def main():
             if done:
                 break
 
-        running_reward = running_reward * 0.99 + t * 0.01
+        running_reward = np.average(policy.rewards)
         finish_episode()
         if i_episode % args.log_interval == 0:
-            print('Episode {}\tLast reward: {:5d}\tAverage reward: {:.2f}'.format(
-                i_episode, t, running_reward))
+            print('Episode {}\tLast reward: {:.2f}\tAverage reward: {:.2f}'.format(
+                i_episode, reward, running_reward))
         if running_reward > env.reward_threshold:
-            print("Solved! Running reward is now {} and "
+            print("Solved! Running reward is now {:.2f} and "
                   "the last episode runs to {} time steps!".format(running_reward, t))
             break
 
