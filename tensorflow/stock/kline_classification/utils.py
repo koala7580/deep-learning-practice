@@ -1,5 +1,6 @@
 """Util functions
 """
+import re
 import tensorflow as tf
 
 
@@ -17,6 +18,11 @@ def build_model_fn(args, build_model):
         tf.summary.image('input_image', inputs)
 
         logits = build_model(inputs, args, mode, params)
+
+        for var in tf.trainable_variables():
+            if 'kernel' in var.name:
+                tf.summary.histogram(re.sub(':\d+', '', var.name), var)
+
 
         predictions = {
             # Generate predictions (for PREDICT and EVAL mode)

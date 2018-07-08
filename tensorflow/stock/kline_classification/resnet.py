@@ -33,6 +33,7 @@ from __future__ import print_function
 
 import tensorflow as tf
 
+_WEIGHT_DECAY = 0.1
 _BATCH_NORM_DECAY = 0.997
 _BATCH_NORM_EPSILON = 1e-5
 DEFAULT_VERSION = 2
@@ -92,6 +93,7 @@ def conv2d_fixed_padding(inputs, filters, kernel_size, strides, data_format):
       inputs=inputs, filters=filters, kernel_size=kernel_size, strides=strides,
       padding=('SAME' if strides == 1 else 'VALID'), use_bias=False,
       kernel_initializer=tf.variance_scaling_initializer(),
+      kernel_regularizer=tf.contrib.layers.l2_regularizer(_WEIGHT_DECAY),
       data_format=data_format)
 
 
@@ -354,7 +356,7 @@ class Model(object):
                kernel_size,
                conv_stride, first_pool_size, first_pool_stride,
                block_sizes, block_strides,
-               final_size, resnet_version=DEFAULT_VERSION, data_format=None,
+               resnet_version=DEFAULT_VERSION, data_format=None,
                dtype=DEFAULT_DTYPE):
     """Creates a model for classifying an image.
 
@@ -376,7 +378,6 @@ class Model(object):
         i-th set.
       block_strides: List of integers representing the desired stride size for
         each of the sets of block layers. Should be same length as block_sizes.
-      final_size: The expected size of the model after the second pooling.
       resnet_version: Integer representing which version of the ResNet network
         to use. See README for details. Valid values: [1, 2]
       data_format: Input format ('channels_last', 'channels_first', or None).
@@ -422,7 +423,6 @@ class Model(object):
     self.first_pool_stride = first_pool_stride
     self.block_sizes = block_sizes
     self.block_strides = block_strides
-    self.final_size = final_size
     self.dtype = dtype
     self.pre_activation = resnet_version == 2
 
@@ -542,7 +542,8 @@ class Model(object):
       inputs = tf.reduce_mean(inputs, axes, keepdims=True)
       inputs = tf.identity(inputs, 'final_reduce_mean')
 
-      inputs = tf.reshape(inputs, [-1, self.final_size])
+      #inputs = tf.reshape(inputs, [-1, self.final_size])
+      inputs = tf.layers.flatten(inputs)
       inputs = tf.layers.dense(inputs=inputs, units=self.num_classes)
       inputs = tf.identity(inputs, 'final_dense')
       return inputs
@@ -550,15 +551,22 @@ class Model(object):
 
 def build_model(inputs, args, mode, params):
   # Convert to channels_last format.
-  inputs = tf.transpose(inputs, [0, 3, 2, 1])
+  inputs = tf.transpose(inputs, [0, 3, 1, 2])
 
-  resnet_size = 18
+  resnet_size = 50
   if resnet_size < 50:
     bottleneck = False
-    final_size = 512
   else:
     bottleneck = True
-    final_size = 2048
+
+  block_size_choices = {
+      18: [2, 2, 2, 2],
+      34: [3, 4, 6, 3],
+      50: [3, 4, 6, 3],
+      101: [3, 4, 23, 3],
+      152: [3, 8, 36, 3],
+      200: [3, 24, 36, 3]
+  }
 
   model = Model(
     resnet_size = resnet_size,
@@ -569,9 +577,8 @@ def build_model(inputs, args, mode, params):
     conv_stride = 2,
     first_pool_size = 2,
     first_pool_stride = 2,
-    block_sizes = [2, 2, 2, 2],
+    block_sizes = block_size_choices[resnet_size],
     block_strides = [1, 2, 2, 2],
-    final_size = final_size,
     resnet_version=2,
     data_format='channels_first',
     dtype=DEFAULT_DTYPE

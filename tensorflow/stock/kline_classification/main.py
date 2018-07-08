@@ -9,7 +9,7 @@ import argparse
 
 import tensorflow as tf
 
-from cifar10_dataset import DataSet
+from dataset import DataSet
 from utils import build_model_fn
 
 from resnet import build_model
@@ -39,8 +39,8 @@ def main(args):
     train_spec = tf.estimator.TrainSpec(input_fn=dataset.train_input_fn(args.train_batch_size),
                                         max_steps=args.train_steps)
     eval_spec = tf.estimator.EvalSpec(input_fn=dataset.eval_input_fn(args.eval_batch_size),
-                                      start_delay_secs=60,
-                                      throttle_secs=60)
+                                      start_delay_secs=600,
+                                      throttle_secs=600)
 
     tf.estimator.train_and_evaluate(estimator, train_spec, eval_spec)
 
@@ -60,7 +60,7 @@ if __name__ == '__main__':
     parser.add_argument(
         '--train-steps',
         type=int,
-        default=100000,
+        default=1000000,
         help='The number of steps to use for training.')
     parser.add_argument(
         '--train-batch-size',

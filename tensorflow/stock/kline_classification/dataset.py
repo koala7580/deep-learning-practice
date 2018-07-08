@@ -32,7 +32,7 @@ class DataSet:
 
     def _make_batch(self, subset, batch_size):
         """Read the images and labels from 'filenames'."""
-        filename = os.path.join(self._data_dir, subset + '.tfrecords')
+        filename = os.path.join(self._data_dir, 'stock_' + subset + '.tfrecords')
 
         # Repeat infinitely.
         dataset = tf.data.TFRecordDataset([filename], compression_type='GZIP')
@@ -82,7 +82,7 @@ class DataSet:
 
     def _preprocess(self, image):
         """Preprocess a single image in [height, width, depth] layout."""
-        if self.subset == 'train' and self.use_distortion:
+        if self._use_distortion:
             # Pad 4 pixels on each dimension of feature map, done in mini-batch
             image = tf.image.resize_image_with_crop_or_pad(image, IMAGE_HEIGHT + 4, IMAGE_WIDTH + 4)
             image = tf.random_crop(image, [IMAGE_HEIGHT, IMAGE_WIDTH, IMAGE_DEPTH])
