@@ -349,7 +349,7 @@ def block_layer(inputs, filters, bottleneck, block_fn, blocks, strides,
   return tf.identity(inputs, name)
 
 
-class Model(object):
+class ResNet(object):
   """Base class for building the Resnet Model."""
 
   def __init__(self, resnet_size, bottleneck, num_classes, num_filters,
@@ -568,7 +568,7 @@ def build_model(inputs, args, mode, params):
       200: [3, 24, 36, 3]
   }
 
-  model = Model(
+  resnet = ResNet(
     resnet_size = resnet_size,
     bottleneck = bottleneck,
     num_classes = 3,
@@ -584,4 +584,4 @@ def build_model(inputs, args, mode, params):
     dtype=DEFAULT_DTYPE
   )
 
-  return model(inputs, mode == tf.estimator.ModeKeys.TRAIN)
+  return resnet(inputs, mode == tf.estimator.ModeKeys.TRAIN)
