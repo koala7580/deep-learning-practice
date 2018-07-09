@@ -91,24 +91,25 @@ class ShuffleNet(object):
         return x
 
     def _shufflenet_unit(self, inputs, filters, strides, groups, stage):
-        groups = 1 if stage == 1 and inputs.get_shape()[self.channels_axis].value == 24 else groups
-
-        x = self._group_conv2d(inputs, filters, kernel_size=1, groups=groups)
+        x = self._group_conv2d(inputs, filters // 4, kernel_size=1, groups=groups)
         x = self._activation(self._batch_norm(x))
-
         x = self._channel_shuffle(x, groups)
 
         x = self._depthwise_conv2d(x, 3, strides)
         x = self._batch_norm(x)
 
-        x = self._group_conv2d(x, filters, kernel_size=1, groups=groups)
+        input_dim = inputs.get_shape()[self.channels_axis].value if strides == 2 else 0
+
+        x = self._group_conv2d(x, filters - input_dim, kernel_size=1, groups=groups)
         x = self._batch_norm(x)
 
         if strides == 2:
             residual = tf.layers.average_pooling2d(inputs, 3, 2, padding='same', data_format=self.data_format)
-            return tf.concat([x, residual], self.channels_axis)
+            x = tf.concat([x, residual], self.channels_axis)
+        else:
+            x = x + inputs
 
-        return self._activation(x + inputs)
+        return self._activation(x)
 
     def __call__(self, inputs, training):
         self._is_training = training
@@ -116,8 +117,6 @@ class ShuffleNet(object):
         input_shape = inputs.get_shape()
         if self.data_format == 'channels_first' and input_shape[-1] == 3:
             inputs = tf.transpose(inputs, [0, 3, 1, 2])
-
-        # scale_factor = 4
 
         x = self._conv2d_with_batch_norm(inputs, filters=24, kernel_size=3, strides=2)
         x = tf.layers.max_pooling2d(x, 3, 2, padding='same', data_format=self.data_format)
@@ -131,7 +130,8 @@ class ShuffleNet(object):
                 x = self._shufflenet_unit(x, num_channels_per_layer[stage], 1, groups, stage + 1)
 
         x = tf.layers.average_pooling2d(x, pool_size=[7, 21], strides=1, data_format=self.data_format)
-        logits = tf.layers.dense(x, units=2)
+        x = tf.layers.flatten(x)
+        logits = tf.layers.dense(x, units=3)
         return logits
 
 

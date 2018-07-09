@@ -99,7 +99,7 @@ def generate_kline_and_label(start_date, buy_date, sell_date, df):
 
 		return img_bytes, label, ratio
 	else:
-		return img_bytes, 2, float('nan')
+		raise ValueError('Some data is empty.')
 
 
 def main(args):
