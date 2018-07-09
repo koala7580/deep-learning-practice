@@ -32,6 +32,7 @@ class Policy(nn.Module):
     def __init__(self):
         super(Policy, self).__init__()
         self.affine1 = nn.Linear(5, 128)
+        self.affine2 = nn.Linear(128, 128)
         self.action_head = nn.Linear(128, 3)
         self.value_head = nn.Linear(128, 1)
 
@@ -40,6 +41,7 @@ class Policy(nn.Module):
 
     def forward(self, x):
         x = F.relu(self.affine1(x))
+        x = F.relu(self.affine2(x))
         action_scores = self.action_head(x)
         state_values = self.value_head(x)
         return F.softmax(action_scores, dim=-1), state_values

@@ -12,7 +12,8 @@ import tensorflow as tf
 from dataset import DataSet
 from utils import build_model_fn
 
-from resnet import build_model
+# from resnet import build_model
+from mobilenet_v2 import build_model
 
 tf.logging.set_verbosity(tf.logging.INFO)
 

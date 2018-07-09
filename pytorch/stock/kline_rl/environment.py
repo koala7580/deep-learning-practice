@@ -56,13 +56,13 @@ class Environment(object):
         if action == 0: # buy, as much as possible
             n = self._buy()
             if n < 1:
-                extra_rewards = -1.0
+                extra_rewards = -2.0
         elif action == 1: # sell, all
             n = self._sell()
             if n < 1:
-                extra_rewards = np.random.randint(-1, 1)
+                extra_rewards = -1.0
         elif action == 2: # wait, do nothing
-            extra_rewards = np.random.randint(-1, 1)            
+            extra_rewards = -10.0
         else:
             raise ValueError('Unknown action %d' % action)
 

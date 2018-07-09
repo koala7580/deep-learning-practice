@@ -88,11 +88,10 @@ def generate_kline_and_label(start_date, buy_date, sell_date, df):
 	img_bytes = draw(sub_df)
 
 	if not buy_day_df.empty and not sell_day_df.empty:
-		b_h = buy_day_df['high'].iloc[0]
-		b_l = buy_day_df['low'].iloc[0]
-		b_c = buy_day_df['close'].iloc[0]
-		buy_price = (b_h + b_l + b_c) / 3.0
-		sell_price = sell_day_df['high'].iloc[0]
+		b = buy_day_df.iloc[0]
+		# buy_price = (b['high'] + b['low'] + b['close']) / 3.0
+		buy_price = b['open']
+		sell_price = sell_day_df.iloc[0]['high']
 
 		# NOTE: The label condition could be change here.
 		ratio = (sell_price - buy_price) / buy_price * 100
@@ -127,7 +126,7 @@ def main(args):
 	with tf.python_io.TFRecordWriter(train_tfrecords_file_path, options=options) as train_record_writer:
 		with tf.python_io.TFRecordWriter(eval_tfrecords_file_path, options=options) as eval_record_writer:
 
-			for code in sh50:
+			for code_index, code in enumerate(sh50):
 				df = read_stock_data(hdf_file_path, code)
 
 				for i in range(len(date_list) - 121):
@@ -145,11 +144,11 @@ def main(args):
 
 					if i < len(date_list) - 121 - args.split_at:
 						train_record_writer.write(example.SerializeToString())
-						print('T {} B {} S {} L {} R {:5.2f}'.format(code, buy_date, sell_date, label, ratio))
+						print('{:2d} {} B {} S {} L {} R {:5.2f} T'.format(code_index, code, buy_date, sell_date, label, ratio))
 						train_count += 1
 					else:
 						eval_record_writer.write(example.SerializeToString())
-						print('E {} B {} S {} L {} R {:5.2f}'.format(code, buy_date, sell_date, label, ratio))
+						print('{:2d} {} B {} S {} L {} R {:5.2f} E'.format(code_index, code, buy_date, sell_date, label, ratio))
 						eval_count += 1
 					total_count += 1
 	print('Total records: %d, %d train, %d eval' % (total_count, train_count, eval_count))
