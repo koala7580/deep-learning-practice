@@ -122,8 +122,8 @@ class ShuffleNet(object):
         x = tf.layers.max_pooling2d(x, 3, 2, padding='same', data_format=self.data_format)
 
         groups = 3
-        num_channels_per_layer = [240, 480, 960]
-        num_layers_per_stage = [3, 7, 3]
+        num_channels_per_layer = [240 // 2, 480 // 2, 960 // 2]
+        num_layers_per_stage = [2, 4, 3]
         for stage in range(len(num_layers_per_stage)):
             x = self._shufflenet_unit(x, num_channels_per_layer[stage], 2, groups, stage + 1)
             for _ in range(num_layers_per_stage[stage]):

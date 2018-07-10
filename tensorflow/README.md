@@ -1,33 +1,31 @@
 ## Environment Prepare
 
-Install `pyenv` and `pyenv-virtualenv`:
+### Linux
 
-    $ brew install pyenv pyenv-virtualenv
+Download the miniconda:
+
+    $ wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh
+    $ bash Miniconda3-latest-Linux-x86_64.sh
+
+### macOS
+
+Install with Homebrew
+
+    $ brew cask install miniconda
+
+### Then
 
 Add init script to .bashrc or .zshrc:
 
-    $ eval "$(pyenv init -)"
-    $ eval "$(pyenv virtualenv-init -)"
-
-Install anaconda3:
-
-    $ pyenv install anaconda3-x.x.x
-
-Activate the anaconda environment:
-
-    $ pyenv activate anaconda3-x.x.x
+    . /prefix/to/miniconda3/etc/profile.d/conda.sh
 
 Create virtual environment:
 
-    $ pyenv virtualenv tensorflow
+    $ conda create -n tensorflow python=3.6 anaconda
 
 Activate virutalenv:
 
     $ conda activate tensorflow
-
-Install anaconda meta package:
-
-    $ conda install anaconda
 
 Install tensorflow
 
