@@ -8,7 +8,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 from torch.distributions import Categorical
-from environment import Environment
+from stock_game import StockGame
 from datetime import datetime
 
 parser = argparse.ArgumentParser(description='PyTorch actor-critic example')
@@ -21,7 +21,8 @@ parser.add_argument('--log-interval', type=int, default=10, metavar='N',
 args = parser.parse_args()
 
 
-env = Environment('000961', '2017-01-01', datetime.today().strftime('%Y-%m-%d'))
+env = StockGame('000961', '2017-01-01', datetime.today().strftime('%Y-%m-%d'), 100000.0)
+env.seed(args.seed)
 torch.manual_seed(args.seed)
 
 
@@ -100,8 +101,8 @@ def main():
         if i_episode % args.log_interval == 0:
             print('Episode {}\tLast reward: {:.2f}\tAverage reward: {:.2f}'.format(
                 i_episode, reward, running_reward))
-        if running_reward > env.reward_threshold:
-            print("Solved! Running reward is now {} and "
+        if i_episode > 100000:
+            print("Train stop. Running reward is now {} and "
                   "the last episode runs to {} time steps!".format(running_reward, t))
             break
 
