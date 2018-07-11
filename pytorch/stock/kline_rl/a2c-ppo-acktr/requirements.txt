@@ -1,0 +1,6 @@
+gym
+matplotlib
+pybullet
+baselines
+opencv-python
+visdom

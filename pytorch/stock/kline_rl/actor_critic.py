@@ -21,7 +21,7 @@ parser.add_argument('--log-interval', type=int, default=10, metavar='N',
 args = parser.parse_args()
 
 
-env = StockGame('000961', '2017-01-01', datetime.today().strftime('%Y-%m-%d'), 100000.0)
+env = StockGame('000961', '2017-01-01', datetime.today().strftime('%Y-%m-%d'), 10000.0)
 env.seed(args.seed)
 torch.manual_seed(args.seed)
 
