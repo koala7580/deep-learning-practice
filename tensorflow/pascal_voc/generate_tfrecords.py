@@ -78,18 +78,24 @@ def main(opt):
     image_dir = os.path.join(opt.src_dir, 'JPEGImages')
     annotation_dir = os.path.join(opt.src_dir, 'Annotations')
 
+    options = tf.python_io.TFRecordOptions(tf.python_io.TFRecordCompressionType.NONE)
+
     # load train set
     with open(os.path.join(opt.src_dir, 'ImageSets', 'Main', 'train.txt')) as fp:
         train_set = [line.strip() for line in fp.readlines()]
 
-    with tf.python_io.TFRecordWriter(os.path.join(opt.dst_dir, 'pascal_voc_train.tfrecords')) as writer:
+    with tf.python_io.TFRecordWriter(
+            os.path.join(opt.dst_dir, 'pascal_voc_train.tfrecords'),
+            options=options) as writer:
         write_set(train_set, image_dir, annotation_dir, writer)
 
     # load eval set
     with open(os.path.join(opt.src_dir, 'ImageSets', 'Main', 'val.txt')) as fp:
         eval_set = [line.strip() for line in fp.readlines()]
 
-    with tf.python_io.TFRecordWriter(os.path.join(opt.dst_dir, 'pascal_voc_eval.tfrecords')) as writer:
+    with tf.python_io.TFRecordWriter(
+            os.path.join(opt.dst_dir, 'pascal_voc_eval.tfrecords'),
+            options=options) as writer:
         write_set(eval_set, image_dir, annotation_dir, writer)
 
 
