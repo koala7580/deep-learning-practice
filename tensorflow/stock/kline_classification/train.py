@@ -52,7 +52,7 @@ if __name__ == '__main__':
     parser.add_argument(
         '--data-dir',
         type=str,
-        required=True,
+        default=os.environ.get('TF_DATA_DIR', os.path.join(os.environ['HOME'], 'data')),
         help='The directory where the input data is stored.')
     parser.add_argument(
         '--job-dir',

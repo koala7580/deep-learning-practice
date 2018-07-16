@@ -12,7 +12,7 @@ import tensorflow as tf
 _BATCH_NORM_DECAY = 0.995
 _BATCH_NORM_EPSILON = 1e-5
 
-class Builder(object):
+class MobileNet(object):
 
     def __init__(self, is_training, data_format):
         self.is_traning = is_training
@@ -75,24 +75,25 @@ class Builder(object):
                 y = self._activation(y)
         return y
 
+    def __call__(self, inputs):
+        net = self.conv2d_bn(inputs, 32, 3, 2)   # 16
+        net = self.separable_conv2d(net, 64, 1)  # 16
+        net = self.separable_conv2d(net, 128, 2) # 8
+        net = self.separable_conv2d(net, 128, 1) # 8
+        net = self.separable_conv2d(net, 256, 2) # 4
+        net = self.separable_conv2d(net, 256, 1) # 4
+        net = self.separable_conv2d(net, 512, 1) # 4 here should downsample
+        net = self.separable_conv2d(net, 512, 1) # 4 here should downsample
+        net = self.separable_conv2d(net, 512, 1) # 4 here should downsample
+        net = self.separable_conv2d(net, 512, 1) # 4 here should downsample
+
+        net = tf.layers.average_pooling2d(net, 4, 1)
+        net = tf.layers.flatten(net)
+        logits = tf.layers.dense(net, units=10)
+
+        return logits
+
 
 def build_model(inputs, args, mode, params):
-    is_training = mode == tf.estimator.ModeKeys.TRAIN
-    B = Builder(is_training, 'channels_last')
-
-    net = B.conv2d_bn(inputs, 32, 3, 2)   # 16
-    net = B.separable_conv2d(net, 64, 1)  # 16
-    net = B.separable_conv2d(net, 128, 2) # 8
-    net = B.separable_conv2d(net, 128, 1) # 8
-    net = B.separable_conv2d(net, 256, 2) # 4
-    net = B.separable_conv2d(net, 256, 1) # 4
-    net = B.separable_conv2d(net, 512, 1) # 4 here should downsample
-    net = B.separable_conv2d(net, 512, 1) # 4 here should downsample
-    net = B.separable_conv2d(net, 512, 1) # 4 here should downsample
-    net = B.separable_conv2d(net, 512, 1) # 4 here should downsample
-
-    net = tf.layers.average_pooling2d(net, 4, 1)
-    net = tf.layers.flatten(net)
-    logits = tf.layers.dense(net, units=10)
-
-    return logits
+    net = MobileNet(mode == tf.estimator.ModeKeys.TRAIN, 'channles_first')
+    return net(inputs)

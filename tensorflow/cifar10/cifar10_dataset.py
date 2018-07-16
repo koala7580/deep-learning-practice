@@ -74,7 +74,7 @@ class DataSet(object):
         # Custom preprocessing.
         image = self._preprocess(image)
 
-        image = tf.image.per_image_standardization(image)
+        # image = tf.image.per_image_standardization(image)
 
         return image, label
 
@@ -85,4 +85,6 @@ class DataSet(object):
             image = tf.image.resize_image_with_crop_or_pad(image, HEIGHT + 4, WIDTH + 4)
             image = tf.random_crop(image, [HEIGHT, WIDTH, DEPTH])
             image = tf.image.random_flip_left_right(image)
+            noise = tf.random_uniform(image.shape, dtype=tf.float32)
+            # image = image + noise * 1e-4
         return image

@@ -14,9 +14,10 @@ from utils import build_model_fn
 
 # from alexnet import build_model
 # from vgg import build_model_16 as build_model
-# from resnet import build_model
+from resnet import build_model
 # from xception import build_model
-from mobilenet_v1 import build_model
+# from mobilenet_v1 import build_model
+# from simplenet_v1 import build_model
 
 tf.logging.set_verbosity(tf.logging.INFO)
 
@@ -54,7 +55,7 @@ if __name__ == '__main__':
     parser.add_argument(
         '--data-dir',
         type=str,
-        required=True,
+        default=os.environ.get('TF_DATA_DIR', os.path.join(os.environ['HOME'], 'data')),
         help='The directory where the input data is stored.')
     parser.add_argument(
         '--job-dir',

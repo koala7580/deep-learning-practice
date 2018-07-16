@@ -585,3 +585,4 @@ def build_model(inputs, args, mode, params):
   )
 
   return resnet(inputs, mode == tf.estimator.ModeKeys.TRAIN)
+

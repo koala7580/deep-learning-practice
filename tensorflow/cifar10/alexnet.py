@@ -5,24 +5,29 @@
 结果：accuracy: 73 %
 """
 from __future__ import division
+from __future__ import absolute_import
 
 import tensorflow as tf
 
+
 def conv2d(x, filters, kernel_size, strides, **kwargs):
     return tf.layers.conv2d(x, filters, kernel_size, strides, padding="same", activation=tf.nn.elu, **kwargs)
+
+
+def lrn(x):
+    return tf.nn.lrn(x, 2, alpha=1e-4, beta=0.75, bias=1.0)
+
 
 def build_model(inputs, args, mode, params):
     scale_factor = 4
 
     with tf.name_scope('block_1'):
-        x = conv2d(inputs, 96 // 4, 11, 2, name='conv1')
-        x = tf.nn.lrn(x, 2, alpha=1e-4, beta=0.75, bias=1.0)
-        x = tf.layers.max_pooling2d(x, 3, 2)
+        x = conv2d(inputs, 96 // scale_factor, 11, 2, name='conv1')
+        x = tf.layers.max_pooling2d(lrn(x), 3, 2)
 
     with tf.name_scope('block_2'):
         x = conv2d(x, 256 // scale_factor, 5, 1, name='conv2')
-        x = tf.nn.lrn(x, 2, alpha=1e-4, beta=0.75, bias=1.0)
-        x = tf.layers.max_pooling2d(x, 3, 2)
+        x = tf.layers.max_pooling2d(lrn(x), 3, 2)
 
     with tf.name_scope('block_3'):
         x = conv2d(x, 384 // scale_factor, 3, 1, name='conv3')

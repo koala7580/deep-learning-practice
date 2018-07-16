@@ -8,7 +8,14 @@ from __future__ import absolute_import
 from __future__ import print_function
 
 import tensorflow as tf
-from layers import LayerBuilder
+
+class MobileNetV2(object):
+
+    def __init__(self):
+        pass
+
+    def __call__(self, inputs):
+        pass
 
 
 def build_model(inputs, args, mode, params):

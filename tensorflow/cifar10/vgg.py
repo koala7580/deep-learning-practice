@@ -11,10 +11,12 @@ import tensorflow as tf
 def conv2d(x, filters, **kwargs):
     return tf.layers.conv2d(x, filters, 3, padding="same", activation=tf.nn.elu, **kwargs)
 
+
 def block(x, filters, n_layers, name):
     for i in range(n_layers):
         x = conv2d(x, filters, name='%s/conv_%d' % (name, i + 1))
     return tf.layers.max_pooling2d(x, 2, 2, name='%s/pool' % name)
+
 
 def build_model(inputs, args, mode, params):
     scale_factor = 4
