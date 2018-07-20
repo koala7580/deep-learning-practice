@@ -1,0 +1,2 @@
+#!/bin/sh
+PYTHONPATH=$PWD python $PWD/app/cifar10_main.py

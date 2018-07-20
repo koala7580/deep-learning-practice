@@ -1,0 +1,2 @@
+#!/bin/sh
+PYTHONPATH=$PWD python $PWD/app/datasets/cifar10_download_and_convert.py

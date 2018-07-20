@@ -25,14 +25,15 @@ import sys
 import tarfile
 
 from six.moves import urllib
-from six.moves import cPickle as pickle
+from six.moves import cPickle
 import tensorflow as tf
 
-from utils import file_md5_check
+from app.utils.check_sum import file_md5_check
 
 # DATA_URL = 'https://www.cs.toronto.edu/~kriz/cifar-10-binary.tar.gz'
 DATA_URL = 'https://www.cs.toronto.edu/~kriz/cifar-10-python.tar.gz'
 MD5_SUM = 'c58f30108f718f92721af3b95e74349a'
+FLAGS = None
 
 parser = argparse.ArgumentParser()
 
@@ -43,9 +44,9 @@ parser.add_argument(
 
 def unpickle(file):
     if sys.version_info >= (3, 0):
-        data_dict = pickle.load(file, encoding='bytes')
+        data_dict = cPickle.load(file, encoding='bytes')
     else:
-        data_dict = pickle.load(file)
+        data_dict = cPickle.load(file)
     return data_dict
 
 
