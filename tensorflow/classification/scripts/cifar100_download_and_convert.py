@@ -28,7 +28,7 @@ from six.moves import urllib
 from six.moves import cPickle
 import tensorflow as tf
 
-from practice.utils.check_sum import file_md5_check
+from utils.check_sum import file_md5_check
 
 # DATA_URL = 'https://www.cs.toronto.edu/~kriz/cifar-10-binary.tar.gz'
 DATA_URL = 'https://www.cs.toronto.edu/~kriz/cifar-100-python.tar.gz'

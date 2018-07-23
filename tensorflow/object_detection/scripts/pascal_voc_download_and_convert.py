@@ -29,7 +29,7 @@ import tensorflow as tf
 import skimage.io
 
 from lxml import etree
-from practice.utils.check_sum import file_md5_check
+from utils.check_sum import file_md5_check
 
 DATA_URL = 'http://host.robots.ox.ac.uk/pascal/VOC/voc2012/VOCtrainval_11-May-2012.tar'
 MD5_SUM = '6cd6e144f989b92b3379bac3b3de84fd'
