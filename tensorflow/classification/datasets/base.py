@@ -76,14 +76,14 @@ class DataSet(object):
         # Potentially shuffle records.
         if self.subset == 'train':
             min_queue_examples = int(
-                DataSet.num_examples_per_epoch(self.subset) * 0.4)
+                self.num_examples_per_epoch(self.subset) * 0.4)
             # Ensure that the capacity is sufficiently large to provide good random
             # shuffling.
             dataset = dataset.shuffle(buffer_size=min_queue_examples + 3 * batch_size)
 
             if num_gpus:
                 total_examples = (num_epochs *
-                                  DataSet.num_examples_per_epoch(self.subset))
+                                  self.num_examples_per_epoch(self.subset))
                 # Force the number of batches to be divisible by the number of devices.
                 # This prevents some devices from receiving batches while others do not,
                 # which can lead to a lockup. This case will soon be handled directly by
