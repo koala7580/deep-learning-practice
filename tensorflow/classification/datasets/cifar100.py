@@ -48,22 +48,22 @@ class Cifar100DataSet(Cifar10DataSet):
         else:
             raise ValueError('Invalid data subset "%s"' % subset)
 
+    @staticmethod
+    def input_fn(is_training, data_dir, batch_size, num_epochs=1, num_gpus=None):
+        """Input_fn using the tf.data input pipeline for CIFAR-100 dataset.
 
-def input_fn(is_training, data_dir, batch_size, num_epochs=1, num_gpus=None):
-    """Input_fn using the tf.data input pipeline for CIFAR-100 dataset.
+          Args:
+            is_training: A boolean denoting whether the input is for training.
+            data_dir: The directory containing the input data.
+            batch_size: The number of samples per batch.
+            num_epochs: The number of epochs to repeat the dataset.
+            num_gpus: The number of gpus used for training.
 
-      Args:
-        is_training: A boolean denoting whether the input is for training.
-        data_dir: The directory containing the input data.
-        batch_size: The number of samples per batch.
-        num_epochs: The number of epochs to repeat the dataset.
-        num_gpus: The number of gpus used for training.
+          Returns:
+            A dataset that can be used for iteration.
+        """
+        subset = 'train' if is_training else 'validation'
 
-      Returns:
-        A dataset that can be used for iteration.
-    """
-    subset = 'train' if is_training else 'validation'
-
-    with tf.device('/cpu:0'):
-        dataset = Cifar100DataSet(data_dir, subset, is_training)
-        return dataset.make_batch(batch_size, num_epochs, num_gpus)
+        with tf.device('/cpu:0'):
+            dataset = Cifar100DataSet(data_dir, subset, is_training)
+            return dataset.make_batch(batch_size, num_epochs, num_gpus)
