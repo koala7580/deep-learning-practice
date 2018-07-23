@@ -13,7 +13,7 @@
 # limitations under the License.
 # ==============================================================================
 
-"""Downloads and convert the python version of the CIFAR-10 dataset to TFRecord."""
+"""Downloads and convert the python version of the CIFAR-100 dataset to TFRecord."""
 
 from __future__ import absolute_import
 from __future__ import division
@@ -31,14 +31,14 @@ import tensorflow as tf
 from practice.utils.check_sum import file_md5_check
 
 # DATA_URL = 'https://www.cs.toronto.edu/~kriz/cifar-10-binary.tar.gz'
-DATA_URL = 'https://www.cs.toronto.edu/~kriz/cifar-10-python.tar.gz'
-MD5_SUM = 'c58f30108f718f92721af3b95e74349a'
+DATA_URL = 'https://www.cs.toronto.edu/~kriz/cifar-100-python.tar.gz'
+MD5_SUM = 'eb9058c3a382ffc7106e4002c42a8d85'
 
 parser = argparse.ArgumentParser()
 
 parser.add_argument(
     '--data_dir', type=str,
-    default=os.environ.get('TF_DATA_DIR', '/tmp/cifar10_data'),
+    default=os.environ.get('TF_DATA_DIR', '/tmp/cifar100_data'),
     help='Directory to download data and extract the tarball')
 
 
@@ -52,7 +52,7 @@ def unpickle(file):
 
 def create_writer(subset):
     return tf.python_io.TFRecordWriter(
-        os.path.join(FLAGS.data_dir, 'cifar10_{}.tfrecords'.format(subset)))
+        os.path.join(FLAGS.data_dir, 'cifar100_{}.tfrecords'.format(subset)))
 
 
 def examples_in_tar_file(tar_file, data_file):
@@ -62,19 +62,24 @@ def examples_in_tar_file(tar_file, data_file):
             data_dict = unpickle(tar_file_obj.extractfile(file_info))
             if sys.version_info >= (3, 0):
                 data = data_dict[b'data']
-                labels = data_dict[b'labels']
+                fine_labels = data_dict[b'fine_labels']
+                coarse_labels = data_dict[b'coarse_labels']
             else:
                 data = data_dict['data']
-                labels = data_dict['labels']
+                fine_labels = data_dict['fine_labels']
+                coarse_labels = data_dict['coarse_labels']
 
-            for image, label in zip(data, labels):
+            for image, fine_label, coarse_label in zip(data, fine_labels, coarse_labels):
                 example = tf.train.Example(features=tf.train.Features(
                     feature={
                         'image': tf.train.Feature(
                             bytes_list=tf.train.BytesList(value=[image.tobytes()])),
-                        'label': tf.train.Feature(
-                            int64_list=tf.train.Int64List(value=[label]))
+                        'fine_label': tf.train.Feature(
+                            int64_list=tf.train.Int64List(value=[fine_label])),
+                        'coarse_label': tf.train.Feature(
+                            int64_list=tf.train.Int64List(value=[coarse_label]))
                     }))
+
                 yield example
 
 
@@ -99,32 +104,35 @@ def main(_):
         stat_info = os.stat(file_path)
         print('Successfully downloaded', filename, stat_info.st_size, 'bytes.')
 
-    with create_writer('train') as writer:
-        for data_file in ['data_batch_%d' % i for i in range(1, 5)]:
+    with create_writer('train') as train_writer:
+        with create_writer('validation') as val_writer:
             example_count = 0
-            for example in examples_in_tar_file(file_path, data_file):
-                writer.write(example.SerializeToString())
-                example_count += 1
-            print('Write %d examples from %s to %s.tfrecords' % (
-                example_count, data_file, 'train'
-            ))
+            train_example_count = 0
+            validation_example_count = 0
+            for example in examples_in_tar_file(file_path, 'train'):
+                if example_count < 40000:
+                    train_writer.write(example.SerializeToString())
+                    train_example_count += 1
+                else:
+                    val_writer.write(example.SerializeToString())
+                    validation_example_count += 1
 
-    with create_writer('validation') as writer:
-        example_count = 0
-        for example in examples_in_tar_file(file_path, 'data_batch_5'):
-            writer.write(example.SerializeToString())
-            example_count += 1
-        print('Write %d examples from %s to %s.tfrecords' % (
-            example_count, 'data_batch_5', 'validation'
-        ))
+                example_count += 1
+
+    print('Write %d examples from %s to %s.tfrecords' % (
+        train_example_count, 'train', 'train'
+    ))
+    print('Write %d examples from %s to %s.tfrecords' % (
+        validation_example_count, 'train', 'validation'
+    ))
 
     with create_writer('test') as writer:
         example_count = 0
-        for example in examples_in_tar_file(file_path, 'test_batch'):
+        for example in examples_in_tar_file(file_path, 'test'):
             writer.write(example.SerializeToString())
             example_count += 1
         print('Write %d examples from %s to %s.tfrecords' % (
-            example_count, 'test_batch', 'test'
+            example_count, 'test', 'test'
         ))
 
 

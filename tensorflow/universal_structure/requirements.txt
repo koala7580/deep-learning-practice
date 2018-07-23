@@ -1,0 +1,10 @@
+lxml
+numpy
+scikit-image
+matplotlib
+tushare
+six
+tensorflow
+absl
+tushare
+https://github.com/matplotlib/mpl_finance/archive/master.zip
