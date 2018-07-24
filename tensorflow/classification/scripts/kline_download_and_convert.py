@@ -29,8 +29,7 @@ import mpl_finance as mpf
 import matplotlib.pyplot as plt
 
 from datetime import datetime
-from threading import Thread
-from six.moves import queue
+from multiprocessing import Process, JoinableQueue
 from collections import namedtuple
 
 plt.switch_backend('agg')
@@ -85,11 +84,26 @@ def worker_producer(q_in, q_out):
         q_in.task_done()
 
 
+def draw_kline(df):
+    fig = plt.figure(figsize=(21, 7))
+    ax = fig.add_subplot(1, 1, 1)
+
+    mpf.candlestick2_ochl(ax, df['open'], df['close'], df['high'], df['low'],
+                          colorup='#804020', colordown='#208040',
+                          alpha=1.0)
+
+    with io.BytesIO() as image_buffer:
+        fig.savefig(image_buffer, format='png')
+        plt.close(fig)
+        return image_buffer.getvalue()
+
+
 def worker_resize(q_in, q_out):
     with tf.device('/gpu:0'):
         image_ph = tf.placeholder(tf.string, shape=())
         decoded = tf.image.decode_png(image_ph, 3)
         resized = tf.image.resize_bilinear(tf.expand_dims(decoded, 0), (224, 224*3))
+        resized = tf.cast(tf.squeeze(resized, 0), tf.uint8)
 
     session_config = tf.ConfigProto(allow_soft_placement=True)
     session = tf.Session(config=session_config)
@@ -124,31 +138,25 @@ def worker_write(q_in, code_list, train_writer, eval_writer):
         q_in.task_done()
 
 
+def make_example(image, label, buy_date, sell_date, code):
+    def _int64_feature(value):
+        return tf.train.Feature(int64_list=tf.train.Int64List(value=[value]))
+
+    def _bytes_feature(value):
+        return tf.train.Feature(bytes_list=tf.train.BytesList(value=[value]))
+
+    return tf.train.Example(features=tf.train.Features(
+        feature={
+            'image': _bytes_feature(image.tobytes()),
+            'label': _int64_feature(label),
+            'buy_date': _bytes_feature(bytes(buy_date, 'utf-8')),
+            'sell_date': _bytes_feature(bytes(sell_date, 'utf-8')),
+            'code': _bytes_feature(bytes(code, 'utf-8'))
+        }))
+
+
 def convert_all_code(code_list, train_writer, eval_writer):
-    q1 = queue.Queue()
-    q2 = queue.Queue()
-    q3 = queue.Queue()
-
-    num_producer_threads = 1
-    num_resize_threads = 1
-
-    # Worker for generating image and label
-    for _ in range(num_producer_threads):
-        t = Thread(target=worker_producer, args=(q1, q2))
-        t.daemon = True
-        t.start()
-
-    # Worker for resize image
-    for _ in range(num_resize_threads):
-        t = Thread(target=worker_resize, args=(q2, q3))
-        t.daemon = True
-        t.start()
-
-    # Worker for writing to tfrecord
-    for _ in range(1):
-        t = Thread(target=worker_write, args=(q3, code_list, train_writer, eval_writer))
-        t.daemon = True
-        t.start()
+    processes, q1, q2, q3 = create_processes(code_list, eval_writer, train_writer)
 
     train_count = 0
     eval_count = 0
@@ -178,50 +186,57 @@ def convert_all_code(code_list, train_writer, eval_writer):
                 df_sell=df_sell
             ))
 
-    q1.join()
-    q2.join()
-    q3.join()
+    wait_for_done(processes, q1, q2, q3)
 
     total_count = train_count + eval_count
     print('Total records: %d, %d train, %d eval' % (total_count, train_count, eval_count))
 
 
-def make_example(image, label, buy_date, sell_date, code):
-    def _int64_feature(value):
-        return tf.train.Feature(int64_list=tf.train.Int64List(value=[value]))
+def create_processes(code_list, eval_writer, train_writer):
+    q1 = JoinableQueue()
+    q2 = JoinableQueue()
+    q3 = JoinableQueue()
 
-    def _bytes_feature(value):
-        return tf.train.Feature(bytes_list=tf.train.BytesList(value=[value]))
+    num_producer_processes = 2
+    num_resize_processes = 4
 
-    return tf.train.Example(features=tf.train.Features(
-        feature={
-            'image': _bytes_feature(image.tobytes()),
-            'label': _int64_feature(label),
-            'buy_date': _bytes_feature(bytes(buy_date, 'utf-8')),
-            'sell_date': _bytes_feature(bytes(sell_date, 'utf-8')),
-            'code': _bytes_feature(bytes(code, 'utf-8'))
-        }))
+    processes = []
+    # Worker for generating image and label
+    for _ in range(num_producer_processes):
+        p = Process(target=worker_producer, args=(q1, q2))
+        p.start()
+        processes.append(p)
+
+    # Worker for resize image
+    for _ in range(num_resize_processes):
+        p = Process(target=worker_resize, args=(q2, q3))
+        p.start()
+        processes.append(p)
+
+    # Worker for writing to tfrecord
+    p = Process(target=worker_write, args=(q3, code_list, train_writer, eval_writer))
+    p.start()
+    processes.append(p)
+
+    return processes, q1, q2, q3
 
 
-def draw_kline(df):
-    fig = plt.figure(figsize=(21, 7))
-    ax = fig.add_subplot(1, 1, 1)
-
-    mpf.candlestick2_ochl(ax, df['open'], df['close'], df['high'], df['low'],
-                          colorup='#804020', colordown='#208040',
-                          alpha=1.0)
-
-    with io.BytesIO() as image_buffer:
-        fig.savefig(image_buffer, format='png')
-        plt.close(fig)
-        return image_buffer.getvalue()
+def wait_for_done(processes, q1, q2, q3):
+    q1.join()
+    q2.join()
+    q3.join()
+    for p in processes:
+        p.join()
 
 
 def create_writer(subset):
     options = tf.python_io.TFRecordOptions(tf.python_io.TFRecordCompressionType.ZLIB)
+    filename = os.path.join(FLAGS.data_dir, 'kline_{}.tfrecords'.format(subset))
 
-    return tf.python_io.TFRecordWriter(
-        os.path.join(FLAGS.data_dir, 'kline_{}.tfrecords'.format(subset)), options=options)
+    if os.path.exists(filename):
+        os.unlink(filename)
+
+    return tf.python_io.TFRecordWriter(filename, options=options)
 
 
 def main(_):

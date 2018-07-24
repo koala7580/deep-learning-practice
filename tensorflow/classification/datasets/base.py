@@ -28,7 +28,7 @@ class DataSet(object):
         self.data_dir = data_dir
         self.subset = subset
         self.use_distortion = use_distortion
-
+        self.compression_type = None
         self.feature_dict = None
 
     def extract_label(self, features):
@@ -63,7 +63,7 @@ class DataSet(object):
         """Read the images and labels from 'filenames'."""
         filenames = self.get_filenames()
         # Repeat infinitely.
-        dataset = tf.data.TFRecordDataset(filenames).repeat(num_epochs)
+        dataset = tf.data.TFRecordDataset(filenames, self.compression_type).repeat(num_epochs)
 
         # We prefetch a batch at a time, This can help smooth out the time taken to
         # load input files as we go through shuffling and processing.

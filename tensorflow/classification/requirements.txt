@@ -5,6 +5,6 @@ matplotlib
 tushare
 six
 tensorflow
-absl
 tushare
+msgpack
 https://github.com/matplotlib/mpl_finance/archive/master.zip
