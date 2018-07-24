@@ -27,9 +27,10 @@ import tushare as ts
 import tensorflow as tf
 import mpl_finance as mpf
 import matplotlib.pyplot as plt
+import multiprocessing as mp
 
 from datetime import datetime
-from multiprocessing import Process, JoinableQueue
+from six.moves import queue
 from collections import namedtuple
 
 plt.switch_backend('agg')
@@ -59,7 +60,10 @@ ResultTuple = namedtuple('ResultTuple', ['data_type', 'code_index', 'code',
 
 def worker_producer(q_in, q_out):
     while True:
-        item = q_in.get()
+        try:
+            item = q_in.get(timeout=2)
+        except queue.Empty:
+            break
 
         image = draw_kline(item.df_chart)
 
@@ -105,10 +109,19 @@ def worker_resize(q_in, q_out):
         resized = tf.image.resize_bilinear(tf.expand_dims(decoded, 0), (224, 224*3))
         resized = tf.cast(tf.squeeze(resized, 0), tf.uint8)
 
-    session_config = tf.ConfigProto(allow_soft_placement=True)
+    session_config = tf.ConfigProto(
+        inter_op_parallelism_threads=os.cpu_count(),
+        intra_op_parallelism_threads=os.cpu_count(),
+        allow_soft_placement=True)
+    session_config.gpu_options.per_process_gpu_memory_fraction = 0.2
+
     session = tf.Session(config=session_config)
     while True:
-        item = q_in.get()
+        try:
+            item = q_in.get(timeout=2)
+        except queue.Empty:
+            break
+
         image = session.run(resized, feed_dict={image_ph: item.image})
         q_out.put(item._replace(image=image))
         q_in.task_done()
@@ -119,7 +132,10 @@ def worker_write(q_in, code_list, train_writer, eval_writer):
     complete_code = set()
 
     while True:
-        item = q_in.get()
+        try:
+            item = q_in.get(timeout=2)
+        except queue.Empty:
+            break
 
         example = make_example(item.image, item.label,
                                item.buy_date, item.sell_date, item.code)
@@ -193,28 +209,28 @@ def convert_all_code(code_list, train_writer, eval_writer):
 
 
 def create_processes(code_list, eval_writer, train_writer):
-    q1 = JoinableQueue()
-    q2 = JoinableQueue()
-    q3 = JoinableQueue()
+    q1 = mp.JoinableQueue()
+    q2 = mp.JoinableQueue()
+    q3 = mp.JoinableQueue()
 
-    num_producer_processes = 2
-    num_resize_processes = 4
+    num_producer_processes = os.cpu_count()
+    num_resize_processes = 2
 
     processes = []
     # Worker for generating image and label
     for _ in range(num_producer_processes):
-        p = Process(target=worker_producer, args=(q1, q2))
+        p = mp.Process(target=worker_producer, args=(q1, q2))
         p.start()
         processes.append(p)
 
     # Worker for resize image
     for _ in range(num_resize_processes):
-        p = Process(target=worker_resize, args=(q2, q3))
+        p = mp.Process(target=worker_resize, args=(q2, q3))
         p.start()
         processes.append(p)
 
     # Worker for writing to tfrecord
-    p = Process(target=worker_write, args=(q3, code_list, train_writer, eval_writer))
+    p = mp.Process(target=worker_write, args=(q3, code_list, train_writer, eval_writer))
     p.start()
     processes.append(p)
 
@@ -225,6 +241,7 @@ def wait_for_done(processes, q1, q2, q3):
     q1.join()
     q2.join()
     q3.join()
+
     for p in processes:
         p.join()
 
