@@ -33,6 +33,7 @@ class KlineDataSet(base.DataSet):
     def __init__(self, data_dir, subset):
         super(KlineDataSet, self).__init__(data_dir, subset, True)
         self.compression_type = 'ZLIB'
+        self.shuffle_factor = 0.1
 
         self.feature_dict = {
             'image': tf.FixedLenFeature([], tf.string),
@@ -47,10 +48,18 @@ class KlineDataSet(base.DataSet):
 
     def extract_image(self, features):
         image = tf.decode_raw(features['image'], tf.uint8)
-        # image.set_shape([self.HEIGHT * self.WIDTH * self.DEPTH])
+        image.set_shape([self.HEIGHT * self.WIDTH * self.DEPTH])
 
         image = tf.cast(tf.reshape(image, [self.HEIGHT, self.WIDTH, self.DEPTH]),
                         tf.float32)
+
+        if self.subset == 'train':
+            image = tf.image.random_hue(image, 0.25)
+            # image = tf.image.random_saturation(image)
+            # image = tf.image.random_brightness(image)
+
+            noise = tf.random_uniform(image.shape, -32, 32)
+            image = image + noise
 
         image = tf.image.per_image_standardization(image)
 
@@ -59,9 +68,9 @@ class KlineDataSet(base.DataSet):
     @staticmethod
     def num_examples_per_epoch(subset='train'):
         if subset == 'train':
-            return 32000
+            return 33679
         elif subset == 'validation':
-            return 1700
+            return 736
         elif subset == 'test':
             return 0
         else:

@@ -56,7 +56,7 @@ def kline_model_fn(features, labels, mode, params):
         boundary_epochs=[30, 60, 80, 90],
         decay_rates=[1, 0.1, 0.01, 0.001, 1e-4])
 
-    model = KlineResNetModel(resnet_size=34,
+    model = KlineResNetModel(resnet_size=18,
                              resnet_version=2,
                              data_format=params['data_format'],
                              dtype=params['dtype'])

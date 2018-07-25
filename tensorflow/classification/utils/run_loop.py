@@ -156,6 +156,7 @@ def model_fn(features, labels, mode, model,
     features = tf.cast(features, dtype)
 
     is_training = mode == tf.estimator.ModeKeys.TRAIN
+    suffix = 'train' if is_training else 'validation'
     logits = model(features, is_training)
 
     # This acts as a no-op if the logits are already in fp32 (provided logits are
@@ -183,7 +184,7 @@ def model_fn(features, labels, mode, model,
 
     # Create a tensor named cross_entropy for logging purposes.
     tf.identity(cross_entropy, name='cross_entropy')
-    tf.summary.scalar('cross_entropy', cross_entropy)
+    tf.summary.scalar('cross_entropy/%s' % suffix, cross_entropy)
 
     # If no loss_filter_fn is passed, assume we want the default behavior,
     # which is that batch_normalization variables are excluded from loss.
@@ -197,7 +198,7 @@ def model_fn(features, labels, mode, model,
         # loss is computed using fp32 for numerical stability.
         [tf.nn.l2_loss(tf.cast(v, tf.float32)) for v in tf.trainable_variables()
          if loss_filter_fn(v.name)])
-    tf.summary.scalar('l2_loss', l2_loss)
+    tf.summary.scalar('l2_loss/%s' % suffix, l2_loss)
     loss = cross_entropy + l2_loss
 
     if mode == tf.estimator.ModeKeys.TRAIN:
@@ -245,7 +246,7 @@ def model_fn(features, labels, mode, model,
 
     # Create a tensor named train_accuracy for logging purposes
     tf.identity(accuracy[1], name='train_accuracy')
-    tf.summary.scalar('train_accuracy', accuracy[1])
+    tf.summary.scalar('accuracy/train', accuracy[1])
 
     return tf.estimator.EstimatorSpec(
         mode=mode,

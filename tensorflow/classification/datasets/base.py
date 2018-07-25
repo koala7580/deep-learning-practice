@@ -30,6 +30,7 @@ class DataSet(object):
         self.use_distortion = use_distortion
         self.compression_type = None
         self.feature_dict = None
+        self.shuffle_factor = 0.4
 
     def extract_label(self, features):
         raise NotImplemented
@@ -76,7 +77,7 @@ class DataSet(object):
         # Potentially shuffle records.
         if self.subset == 'train':
             min_queue_examples = int(
-                self.num_examples_per_epoch(self.subset) * 0.4)
+                self.num_examples_per_epoch(self.subset) * self.shuffle_factor)
             # Ensure that the capacity is sufficiently large to provide good random
             # shuffling.
             dataset = dataset.shuffle(buffer_size=min_queue_examples + 3 * batch_size)

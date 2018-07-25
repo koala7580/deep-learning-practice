@@ -47,7 +47,7 @@ parser.add_argument(
     help='The start date')
 
 parser.add_argument(
-    '--train_date', type=str, required=True,
+    '--split_date', type=str, required=True,
     help='The date before which are used for training.')
 
 
@@ -113,7 +113,7 @@ def worker_resize(q_in, q_out):
         inter_op_parallelism_threads=os.cpu_count(),
         intra_op_parallelism_threads=os.cpu_count(),
         allow_soft_placement=True)
-    session_config.gpu_options.per_process_gpu_memory_fraction = 0.2
+    session_config.gpu_options.allow_growth = True
 
     session = tf.Session(config=session_config)
     while True:
@@ -127,31 +127,33 @@ def worker_resize(q_in, q_out):
         q_in.task_done()
 
 
-def worker_write(q_in, code_list, train_writer, eval_writer):
+def worker_write(q_in, code_list):
     total_code = len(code_list)
     complete_code = set()
 
-    while True:
-        try:
-            item = q_in.get(timeout=2)
-        except queue.Empty:
-            break
+    with create_writer('train') as train_writer:
+        with create_writer('validation') as eval_writer:
+            while True:
+                try:
+                    item = q_in.get(timeout=2)
+                except queue.Empty:
+                    break
 
-        example = make_example(item.image, item.label,
-                               item.buy_date, item.sell_date, item.code)
-        if item.data_type == 'T':
-            train_writer.write(example.SerializeToString())
-        else:
-            eval_writer.write(example.SerializeToString())
+                example = make_example(item.image, item.label,
+                                       item.buy_date, item.sell_date, item.code)
+                if item.data_type == 'T':
+                    train_writer.write(example.SerializeToString())
+                else:
+                    eval_writer.write(example.SerializeToString())
 
-        complete_code.add(item.code)
+                complete_code.add(item.code)
 
-        print('%d/%d %s %s -> %s %d %5.2f %s' %
-              (len(complete_code), total_code,
-               item.code, item.buy_date, item.sell_date,
-               item.label, item.ratio, item.data_type))
+                print('%d/%d %s %s -> %s %d %5.2f %s' %
+                      (len(complete_code), total_code,
+                       item.code, item.buy_date, item.sell_date,
+                       item.label, item.ratio, item.data_type))
 
-        q_in.task_done()
+                q_in.task_done()
 
 
 def make_example(image, label, buy_date, sell_date, code):
@@ -171,8 +173,8 @@ def make_example(image, label, buy_date, sell_date, code):
         }))
 
 
-def convert_all_code(code_list, train_writer, eval_writer):
-    processes, q1, q2, q3 = create_processes(code_list, eval_writer, train_writer)
+def convert_all_code(code_list):
+    processes, q1, q2, q3 = create_processes(code_list)
 
     train_count = 0
     eval_count = 0
@@ -186,7 +188,7 @@ def convert_all_code(code_list, train_writer, eval_writer):
             df_sell = df.iloc[index_end + 2]
             df_chart = df.iloc[index_beg:index_end]
 
-            if df_buy['date'] < FLAGS.train_date:
+            if df_buy['date'] < FLAGS.split_date:
                 data_type = 'T'
                 train_count += 1
             else:
@@ -208,13 +210,13 @@ def convert_all_code(code_list, train_writer, eval_writer):
     print('Total records: %d, %d train, %d eval' % (total_count, train_count, eval_count))
 
 
-def create_processes(code_list, eval_writer, train_writer):
+def create_processes(code_list):
     q1 = mp.JoinableQueue()
     q2 = mp.JoinableQueue()
     q3 = mp.JoinableQueue()
 
     num_producer_processes = os.cpu_count()
-    num_resize_processes = 2
+    num_resize_processes = os.cpu_count()
 
     processes = []
     # Worker for generating image and label
@@ -230,7 +232,7 @@ def create_processes(code_list, eval_writer, train_writer):
         processes.append(p)
 
     # Worker for writing to tfrecord
-    p = mp.Process(target=worker_write, args=(q3, code_list, train_writer, eval_writer))
+    p = mp.Process(target=worker_write, args=(q3, code_list))
     p.start()
     processes.append(p)
 
@@ -261,16 +263,14 @@ def main(_):
     if not os.path.exists(FLAGS.data_dir):
         os.makedirs(FLAGS.data_dir)
 
-    with create_writer('train') as train_writer:
-        with create_writer('validation') as eval_writer:
-            sh50 = ts.get_sz50s()
+    sh50 = ts.get_sz50s()
 
-            start = datetime.now()
-            convert_all_code(sh50['code'].values, train_writer, eval_writer)
-            time_elapsed = datetime.now() - start
+    start = datetime.now()
+    convert_all_code(sh50['code'].values)
+    time_elapsed = datetime.now() - start
 
-            secs = time_elapsed.total_seconds()
-            print('Elapsed: %2d:%2d:%2d' % (secs // 3600, secs % 3600 // 60, secs % 3600 % 60))
+    secs = time_elapsed.total_seconds()
+    print('Elapsed: %2d:%2d:%2d' % (secs // 3600, secs % 3600 // 60, secs % 3600 % 60))
 
 
 if __name__ == '__main__':
