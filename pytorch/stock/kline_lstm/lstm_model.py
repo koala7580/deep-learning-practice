@@ -25,6 +25,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
+import numpy as np
 
 from datetime import datetime
 
@@ -43,13 +44,14 @@ class Model(nn.Module):
 
         input_dim = 5
         self.hidden_dim = hidden_dim
-        self.lstm_n_layers = 1
+        self.lstm_n_layers = 30
 
         # Linear transform layers
         self.linear1 = nn.Linear(in_features=input_dim, out_features=input_dim)
 
         # LSTM cell
-        self.lstm = nn.LSTM(input_dim, self.hidden_dim, num_layers=self.lstm_n_layers, batch_first=True)
+        self.lstm = nn.LSTM(input_dim, self.hidden_dim, num_layers=self.lstm_n_layers,
+                            batch_first=True, dropout=0.4)
 
         # OUtput linear map
         self.linear2 = nn.Linear(in_features=self.hidden_dim, out_features=1)
@@ -96,9 +98,14 @@ def dataset(mode, split_date):
             if mode == 'eval' and series_sell['date'] < split_date:
                 continue
 
-            price = series_buy['open']
+            if series_buy['close'] > series_buy['low']:
+                low, high = series_buy['low'], series_buy['close']
+            else:
+                low, high = series_buy['low'], series_buy['high']
+
+            price = np.random.uniform(low, high)
             target = torch.zeros((1, 1))
-            target[0, 0] = 1 if series_sell['high'] > price * 1.01 else 0
+            target[0, 0] = 1.0 if series_sell['high'] > price * 1.015 else 0.0
 
             keys = ['open', 'high', 'low', 'close', 'volume']
             seq = torch.zeros((len(df_data), len(keys)))
@@ -118,12 +125,13 @@ def main(_):
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-    model = Model(hidden_dim=128)
+    model = Model(hidden_dim=10)
     model.to(device)
 
     loss_function = nn.BCELoss()
 
-    optimizer = optim.SGD(model.parameters(), lr=0.01, momentum=0.9)
+    optimizer = optim.SGD(model.parameters(), lr=0.01, momentum=0.9, weight_decay=0.0005)
+    lr_schedular = optim.lr_scheduler.StepLR(optimizer, 30)
 
     print('Start training')
     num_epochs = 100
@@ -144,6 +152,7 @@ def main(_):
             loss = loss_function(out, target)
             loss.backward()
             optimizer.step()
+            lr_schedular.step()
 
             epoch_loss += loss
             examples_in_epoch += 1
