@@ -13,7 +13,11 @@
 # limitations under the License.
 # ==============================================================================
 
-"""Downloads and convert the kline data and convert to TFRecord."""
+"""Downloads and convert the kline data and convert to TFRecord.
+Draw finance chart: https://ipreacher.github.io/2017/candlestick/
+With MACD and RSI: https://zhuanlan.zhihu.com/p/29519040
+TALib: http://ta-lib.org/function.html
+"""
 
 from __future__ import absolute_import
 from __future__ import division

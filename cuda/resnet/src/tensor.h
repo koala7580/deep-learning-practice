@@ -8,26 +8,34 @@
 #include "array4d.h"
 
 namespace cudnn {
-    class Tensor4d {
+    class Tensor {
         cudnnTensorDescriptor_t _descriptor;
-    public:
-        const TensorFormat format;
-        const DataType data_type;
-        const int batch_size, n_channels, height, width;
+    
+        TensorFormat _format;
+        DataType _data_type;
+        uint32_t _batch_size, _n_channels, _height, _width;
 
     public:
-        Tensor4d(size_t batch_size, size_t n_channels, size_t height, size_t width,
+        const TensorFormat &format;
+        const DataType &data_type;
+        const uint32_t &batch_size;
+        const uint32_t &n_channels;
+        const uint32_t &height;
+        const uint32_t &width;
+
+    public:
+        Tensor(uint32_t batch_size, uint32_t n_channels, uint32_t height, uint32_t width,
                 TensorFormat format = TensorFormat::ChannelsFirst,
                 DataType data_type = DataType::Float32);
-        ~Tensor4d();
-        Tensor4d(const Tensor4d& other);
-        Tensor4d(Tensor4d&& other);
-        Tensor4d& operator=(const Tensor4d& other) = delete;
-        Tensor4d& operator=(Tensor4d&& other) = delete;
+        ~Tensor();
+        Tensor(const Tensor& other);
+        Tensor(Tensor&& other);
+        Tensor& operator=(const Tensor& other) = delete;
+        Tensor& operator=(Tensor&& other) = delete;
 
-        Array4f32 CreateArray4f32() const;
+        void SetShape(uint32_t batch_size, uint32_t n_channels, uint32_t height, uint32_t width);
 
-        explicit operator cudnnTensorDescriptor_t() const noexcept { return _descriptor; }
+        cudnnTensorDescriptor_t descriptor();
     };
 }
 

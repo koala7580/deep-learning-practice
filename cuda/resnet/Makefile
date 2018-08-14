@@ -13,7 +13,7 @@ cudnn_context_test: $(patsubst %,build/%.o,cudnn_context exception data_type cat
 	$(CXX) $(CXXFLAGS) $(LIBS) -o build/$@ $^
 	./build/$@
 
-tensor_test: $(patsubst %,build/%.o,tensor array4d data_type exception catch tensor_test)
+tensor_test: $(patsubst %,build/%.o,tensor data_type exception catch tensor_test)
 	$(CXX) $(CXXFLAGS) $(LIBS) -o build/$@ $^
 	./build/$@
 
@@ -33,7 +33,7 @@ cuda_test: $(patsubst %,build/%.o,catch cuda_test)
 	$(CXX) $(CXXFLAGS) $(LIBS) -o build/$@ $^
 	./build/$@
 
-cuda_test: $(patsubst %,build/%.o,catch cuda_test)
+cudnn_test: $(patsubst %,build/%.o,catch cuda_test)
 	$(CXX) $(CXXFLAGS) $(LIBS) -o build/$@ $^
 	./build/$@
 

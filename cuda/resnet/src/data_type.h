@@ -17,11 +17,6 @@ namespace cudnn {
     };
 
     size_t size_of_data_type(DataType dataType);
-
-    template<typename T>
-    bool is_valid_type(DataType dt) { return false; }
-    template<> bool is_valid_type<float>(DataType);
-    template<> bool is_valid_type<double>(DataType);
 }
 
 #endif // __DATA_TYPE_H__

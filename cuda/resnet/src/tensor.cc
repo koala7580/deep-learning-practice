@@ -3,55 +3,72 @@
 #include "tensor.h"
 #include "exception.h"
 
-cudnn::Tensor4d::Tensor4d(size_t batch_size, size_t n_channels, size_t height, size_t width,
-        TensorFormat format, DataType data_type)
-: batch_size(batch_size), n_channels(n_channels), height(height), width(width),
-  format(format), data_type(data_type),
-  _descriptor(nullptr)
+cudnn::Tensor::Tensor(uint32_t batch_size, uint32_t n_channels, uint32_t height, uint32_t width,
+    cudnn::TensorFormat format, cudnn::DataType data_type)
+:  _descriptor(nullptr),
+  _batch_size(batch_size), _n_channels(n_channels), _height(height), _width(width),
+  _format(format), _data_type(data_type),
+  batch_size(this->_batch_size), n_channels(this->_n_channels),
+  height(this->_height), width(this->_width),
+  format(this->_format), data_type(this->_data_type)
 {
-    assert_cudnn_success( cudnnCreateTensorDescriptor(&_descriptor) );
-    assert_cudnn_success( cudnnSetTensor4dDescriptor(_descriptor,
-        static_cast<cudnnTensorFormat_t>(format),
-        static_cast<cudnnDataType_t>(data_type),
-        batch_size, n_channels, height, width
-    ) );
+
 }
 
-cudnn::Tensor4d::Tensor4d(const cudnn::Tensor4d &other)
-: batch_size(other.batch_size), n_channels(other.n_channels), height(other.height), width(other.width),
-  format(other.format), data_type(other.data_type)
+cudnn::Tensor::Tensor(const cudnn::Tensor &other)
+: _descriptor(nullptr),
+  _batch_size(other.batch_size), _n_channels(other.n_channels), _height(other.height), _width(other.width),
+  _format(other.format), _data_type(other.data_type),
+  batch_size(this->_batch_size), n_channels(this->_n_channels),
+  height(this->_height), width(this->_width),
+  format(this->_format), data_type(this->_data_type)
 {
-    assert_cudnn_success( cudnnCreateTensorDescriptor(&_descriptor) );
-    assert_cudnn_success( cudnnSetTensor4dDescriptor(_descriptor,
-        static_cast<cudnnTensorFormat_t>(format),
-        static_cast<cudnnDataType_t>(data_type),
-        batch_size, n_channels, height, width
-    ) );
+
 }
 
-cudnn::Tensor4d::Tensor4d(cudnn::Tensor4d &&other)
-: batch_size(other.batch_size), n_channels(other.n_channels), height(other.height), width(other.width),
-  format(other.format), data_type(other.data_type),
+cudnn::Tensor::Tensor(cudnn::Tensor &&other)
+: _batch_size(other.batch_size), _n_channels(other.n_channels), _height(other.height), _width(other.width),
+  _format(other.format), _data_type(other.data_type),
+  batch_size(this->_batch_size), n_channels(this->_n_channels),
+  height(this->_height), width(this->_width),
+  format(this->_format), data_type(this->_data_type),
   _descriptor(std::exchange(other._descriptor, nullptr))
 {
-    
+    //
 }
 
-cudnn::Tensor4d::~Tensor4d()
+cudnn::Tensor::~Tensor()
 {
     if (_descriptor != nullptr) {
         assert_cudnn_success( cudnnDestroyTensorDescriptor(_descriptor) );
     }
 }
 
-cudnn::Array4f32 cudnn::Tensor4d::CreateArray4f32() const
+void cudnn::Tensor::SetShape(uint32_t batch_size, uint32_t n_channels, uint32_t height, uint32_t width)
 {
-    switch(format) {
-        case TensorFormat::ChannelsFirst:
-            return Array4f32(batch_size, n_channels, height, width);
-        case TensorFormat::ChannelsLast:
-            return Array4f32(batch_size, height, width, n_channels);
-        default:
-            throw std::runtime_error("Unknown tensor format.");
+    _batch_size = batch_size;
+    _n_channels = n_channels;
+    _height = height;
+    _width = width;
+    
+    if (_descriptor != nullptr) {
+        assert_cudnn_success( cudnnSetTensor4dDescriptor(_descriptor,
+            static_cast<cudnnTensorFormat_t>(_format),
+            static_cast<cudnnDataType_t>(_data_type),
+            _batch_size, _n_channels, _height, _width
+        ));
     }
+}
+
+cudnnTensorDescriptor_t cudnn::Tensor::descriptor()
+{
+    if (_descriptor == nullptr) {
+        assert_cudnn_success( cudnnCreateTensorDescriptor(&_descriptor) );
+        assert_cudnn_success( cudnnSetTensor4dDescriptor(_descriptor,
+            static_cast<cudnnTensorFormat_t>(_format),
+            static_cast<cudnnDataType_t>(_data_type),
+            _batch_size, _n_channels, _height, _width
+        ) );
+    }
+    return _descriptor;
 }

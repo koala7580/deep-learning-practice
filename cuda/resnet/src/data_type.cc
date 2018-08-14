@@ -1,4 +1,3 @@
-#include <iostream>
 #include <stdexcept>
 #include "data_type.h"
 
@@ -13,14 +12,4 @@ size_t cudnn::size_of_data_type(cudnn::DataType dataType) {
         default:
             throw std::invalid_argument("The given DataType is invalid.");
     }
-}
-
-template<>
-bool cudnn::is_valid_type<float>(DataType dt) {
-    return dt == DataType::Float16 || dt == DataType::Float32;
-}
-
-template<>
-bool cudnn::is_valid_type<double>(DataType dt) {
-    return dt == DataType::Float64;
 }
