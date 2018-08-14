@@ -7,21 +7,6 @@ cudnn::Kernel::Kernel(int in_channels, int out_channels, int height, int width,
 : out_channels(out_channels), in_channels(in_channels),
   height(height), width(width), format(format), data_type(data_type)
 {
-    _InitDescriptor();
-}
-
-cudnn::Kernel::~Kernel()
-{
-    assert_cudnn_success( cudnnDestroyFilterDescriptor(_descriptor) );
-}
-
-cudnn::Array4f32 cudnn::Kernel::CreateArray4f32() const
-{
-    return Array4f32(out_channels, in_channels, height, width);
-}
-
-void cudnn::Kernel::_InitDescriptor()
-{
     assert_cudnn_success( cudnnCreateFilterDescriptor(&_descriptor) );
     assert_cudnn_success( cudnnSetFilter4dDescriptor(_descriptor,
         static_cast<cudnnDataType_t>(data_type),
@@ -32,3 +17,9 @@ void cudnn::Kernel::_InitDescriptor()
         width
     ));
 }
+
+cudnn::Kernel::~Kernel()
+{
+    assert_cudnn_success( cudnnDestroyFilterDescriptor(_descriptor) );
+}
+

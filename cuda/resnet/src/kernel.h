@@ -20,7 +20,6 @@ namespace cudnn {
         const size_t height;
         const size_t width;
 
-        void _InitDescriptor();
     public:
         Kernel(int in_channels, int out_channels, int height, int width,
                 TensorFormat format = TensorFormat::ChannelsFirst,
@@ -32,9 +31,7 @@ namespace cudnn {
         Kernel& operator=(const Kernel& other)  = delete;
         Kernel& operator=(Kernel&& other) = delete;
 
-        Array4f32 CreateArray4f32() const;
-
-        explicit operator cudnnFilterDescriptor_t() const noexcept { return _descriptor; }
+        inline cudnnFilterDescriptor_t descriptor() const noexcept { return _descriptor; }
     };
 }
 

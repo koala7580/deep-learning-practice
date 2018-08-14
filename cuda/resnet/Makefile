@@ -49,7 +49,7 @@ hdf5_test: $(patsubst %,build/%.o,cudnn_context data_type array4d exception tens
 build/%.o: tests/%.cc
 	$(CXX) $(CXXFLAGS) $(INCLUDE_DIRS) -c -o build/${@F} $<
 
-build/%.o: src/%.cc
+build/%.o: src/%.cc src/%.h
 	$(CXX) $(CXXFLAGS) $(INCLUDE_DIRS) -c -o build/${@F} $<
 
 .phony: clean
