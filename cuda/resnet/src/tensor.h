@@ -10,11 +10,13 @@
 namespace cudnn {
     class Tensor {
         cudnnTensorDescriptor_t _descriptor;
-    
+
         TensorFormat _format;
         DataType _data_type;
         uint32_t _batch_size, _n_channels, _height, _width;
 
+        void *h_data;
+        void *d_data;
     public:
         const TensorFormat &format;
         const DataType &data_type;
@@ -36,6 +38,9 @@ namespace cudnn {
         void SetShape(uint32_t batch_size, uint32_t n_channels, uint32_t height, uint32_t width);
 
         cudnnTensorDescriptor_t descriptor();
+        inline size_t size() const {
+            return _batch_size * _n_channels * height * width * size_of_data_type(_data_type);
+        }
     };
 }
 

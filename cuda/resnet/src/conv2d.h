@@ -19,15 +19,15 @@ namespace layers {
         cudnnConvolutionFwdAlgo_t _convolution_fwd_algo;
         void *_workspace;
         size_t _workspace_size;
+        void *_weight_data;
+        void *_bias_data;
 
-        void _PrepareWorkspace(const cudnn::Tensor4d &input_tensor,
-                               const cudnn::Tensor4d &output_tensor);
+        void _PrepareWorkspace(const cudnn::Tensor &input_tensor,
+                               const cudnn::Tensor &output_tensor);
     public:
         size_t in_channels;
         size_t out_channels;
         size_t kernel_size;
-        cudnn::Array4f32 weight_data;
-        cudnn::Array4f32 bias_data;
 
     public:
         Conv1D(const cudnn::Context &context,

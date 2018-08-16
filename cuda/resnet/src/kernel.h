@@ -32,6 +32,9 @@ namespace cudnn {
         Kernel& operator=(Kernel&& other) = delete;
 
         inline cudnnFilterDescriptor_t descriptor() const noexcept { return _descriptor; }
+        inline size_t size() const {
+            return out_channels * in_channels * height * width * size_of_data_type(data_type);
+        }
     };
 }
 

@@ -17,11 +17,11 @@ layers::Conv1D::Conv1D(
   _use_bias(use_bias),
   _workspace(nullptr),
   _workspace_size(0),
+  _weight_data(nullptr),
+  _bias_data(nullptr),
   in_channels(in_channels),
   out_channels(out_channels),
-  kernel_size(kernel_size),
-  weight_data(_kernel.CreateArray4f32()),
-  bias_data(_bias.CreateArray4f32())
+  kernel_size(kernel_size)
 {
     assert_cudnn_success( cudnnCreateConvolutionDescriptor(&_convolution_descriptor) );
     assert_cudnn_success( cudnnSetConvolution2dDescriptor(_convolution_descriptor,
